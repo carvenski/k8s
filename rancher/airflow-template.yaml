@@ -1,0 +1,1425 @@
+# helm template bitnami/airflow --version 14.0.6 -f values.yaml -n airflow > airflow.yaml
+
+# cover web entrypoiont.sh
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: airflow-web-entrypoint-config
+  namespace: "airflow-test"
+  labels:
+    app.kubernetes.io/name: airflow
+    helm.sh/chart: airflow-14.0.6
+    app.kubernetes.io/instance: airflow
+    app.kubernetes.io/managed-by: Helm
+data:
+  entrypoint.sh: |-
+    #!/bin/bash
+
+    # shellcheck disable=SC1091
+
+    set -o errexit
+    set -o nounset
+    set -o pipefail
+    # set -o xtrace # Uncomment this line for debugging purposes
+
+    # Load Airflow environment variables
+    . /opt/bitnami/scripts/airflow-env.sh
+
+    # Load libraries
+    . /opt/bitnami/scripts/libbitnami.sh
+    . /opt/bitnami/scripts/libairflow.sh
+
+    print_welcome_page
+
+    if ! am_i_root && [[ -e "$LIBNSS_WRAPPER_PATH" ]]; then
+        info "Enabling non-root system user with nss_wrapper"
+        echo "airflow:x:$(id -u):$(id -g):Airflow:$AIRFLOW_HOME:/bin/false" > "$NSS_WRAPPER_PASSWD"
+        echo "airflow:x:$(id -g):" > "$NSS_WRAPPER_GROUP"
+
+        export LD_PRELOAD="$LIBNSS_WRAPPER_PATH"
+    fi
+
+    # Install custom python package if requirements.txt is present
+    if [[ -f "/bitnami/python/requirements.txt" ]]; then
+        . /opt/bitnami/airflow/venv/bin/activate
+        pip install -r /bitnami/python/requirements.txt
+        deactivate
+    fi
+
+    ########################## add intel provider repo ##########################
+    ln -s /opt/bitnami/airflow/providers/airflow-downstream/airflow/providers/intel /opt/bitnami/airflow/venv/lib/python3.9/site-packages/airflow/providers/intel
+
+    if [[ "$*" = *"/opt/bitnami/scripts/airflow/run.sh"* || "$*" = *"/run.sh"* ]]; then
+        info "** Starting Airflow setup **"
+        /opt/bitnami/scripts/postgresql-client/setup.sh
+        /opt/bitnami/scripts/airflow/setup.sh
+        info "** Airflow setup finished! **"
+    fi
+
+    echo ""
+    exec "$@"
+
+# cover scheduler entrypoiont.sh
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: airflow-scheduler-entrypoint-config
+  namespace: "airflow-test"
+  labels:
+    app.kubernetes.io/name: airflow
+    helm.sh/chart: airflow-14.0.6
+    app.kubernetes.io/instance: airflow
+    app.kubernetes.io/managed-by: Helm
+data:
+  entrypoint.sh: |-
+    #!/bin/bash
+
+    # shellcheck disable=SC1091
+
+    set -o errexit
+    set -o nounset
+    set -o pipefail
+    # set -o xtrace # Uncomment this line for debugging purposes
+
+    # Load Airflow environment variables
+    . /opt/bitnami/scripts/airflow-scheduler-env.sh
+
+    # Load libraries
+    . /opt/bitnami/scripts/libbitnami.sh
+    . /opt/bitnami/scripts/libairflowscheduler.sh
+
+    print_welcome_page
+
+    if ! am_i_root && [[ -e "$LIBNSS_WRAPPER_PATH" ]]; then
+        info "Enabling non-root system user with nss_wrapper"
+        echo "airflow:x:$(id -u):$(id -g):Airflow:$AIRFLOW_HOME:/bin/false" > "$NSS_WRAPPER_PASSWD"
+        echo "airflow:x:$(id -g):" > "$NSS_WRAPPER_GROUP"
+
+        export LD_PRELOAD="$LIBNSS_WRAPPER_PATH"
+    fi
+
+    # Install custom python package if requirements.txt is present
+    if [[ -f "/bitnami/python/requirements.txt" ]]; then
+        . /opt/bitnami/airflow/venv/bin/activate
+        pip install -r /bitnami/python/requirements.txt
+        deactivate
+    fi
+
+    ########################## add intel provider repo ##########################
+    ln -s /opt/bitnami/airflow/providers/airflow-downstream/airflow/providers/intel /opt/bitnami/airflow/venv/lib/python3.9/site-packages/airflow/providers/intel
+
+    if [[ "$*" = *"/opt/bitnami/scripts/airflow-scheduler/run.sh"* || "$*" = *"/run.sh"* ]]; then
+        info "** Starting Airflow setup **"
+        /opt/bitnami/scripts/airflow-scheduler/setup.sh
+        info "** Airflow setup finished! **"
+    fi
+
+    echo ""
+    exec "$@"
+
+# cover worker entrypoiont.sh
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: airflow-worker-entrypoint-config
+  namespace: "airflow-test"
+  labels:
+    app.kubernetes.io/name: airflow
+    helm.sh/chart: airflow-14.0.6
+    app.kubernetes.io/instance: airflow
+    app.kubernetes.io/managed-by: Helm
+data:
+  entrypoint.sh: |-
+    #!/bin/bash
+
+    # shellcheck disable=SC1091
+
+    set -o errexit
+    set -o nounset
+    set -o pipefail
+    # set -o xtrace # Uncomment this line for debugging purposes
+
+    # Load Airflow environment variables
+    . /opt/bitnami/scripts/airflow-worker-env.sh
+
+    # Load libraries
+    . /opt/bitnami/scripts/libbitnami.sh
+    . /opt/bitnami/scripts/libairflowworker.sh
+
+    print_welcome_page
+
+    if ! am_i_root && [[ -e "$LIBNSS_WRAPPER_PATH" ]]; then
+        info "Enabling non-root system user with nss_wrapper"
+        echo "airflow:x:$(id -u):$(id -g):Airflow:$AIRFLOW_HOME:/bin/false" > "$NSS_WRAPPER_PASSWD"
+        echo "airflow:x:$(id -g):" > "$NSS_WRAPPER_GROUP"
+
+        export LD_PRELOAD="$LIBNSS_WRAPPER_PATH"
+    fi
+
+    # Install custom python package if requirements.txt is present
+    if [[ -f "/bitnami/python/requirements.txt" ]]; then
+        . /opt/bitnami/airflow/venv/bin/activate
+        pip install -r /bitnami/python/requirements.txt
+        deactivate
+    fi
+
+    ####################### Install dag & provider needed pip packages ##############
+    # Install /opt/bitnami/airflow/dags/airflowETL/requirements.txt
+    if [[ -f "/opt/bitnami/airflow/dags/airflowETL/requirements.txt" ]]; then
+        . /opt/bitnami/airflow/venv/bin/activate
+        pip install -r /opt/bitnami/airflow/dags/airflowETL/requirements.txt
+        deactivate
+        echo "=> Install dag packages from airflowETL repo done !"
+    fi
+
+    # Prepare install-intel-provider.py file
+    cat > /opt/bitnami/airflow/providers/airflow-downstream/airflow/providers/intel/install-intel-provider.py <<EOF
+    import os
+    import yaml
+
+    packages = []
+    path = "/opt/bitnami/airflow/providers/airflow-downstream/airflow/providers/intel"
+    for provider in os.listdir("."):    
+        if os.path.isdir(provider):
+            print("provider: %s" % provider)
+            with open("%s/provider.yaml" % provider, 'r') as f:
+                y = yaml.load(f, yaml.Loader)
+                print("dependencies: %s" % y["dependencies"])
+                if y["dependencies"]:
+                    for package in y["dependencies"]:
+                        packages.append(package)
+    os.system("pip install %s" % ' '.join(packages))
+    EOF
+
+    # Install airflow-downstream repo intel provider dependent pip packages
+    if [[ -f "/opt/bitnami/airflow/providers/airflow-downstream/airflow/providers/intel/install-intel-provider.py" ]]; then
+        . /opt/bitnami/airflow/venv/bin/activate
+        cd /opt/bitnami/airflow/providers/airflow-downstream/airflow/providers/intel && python install-intel-provider.py
+        deactivate
+        echo "=> Install provider packages from airflow-downstream repo done !"
+    fi
+
+    # copy airflow-downstream repo intel provider to airflow PYTHONPATH
+    cp -r /opt/bitnami/airflow/providers/airflow-downstream/airflow/providers/intel /opt/bitnami/airflow/venv/lib/python3.9/site-packages/airflow/providers/ 
+
+    if [[ "$*" = *"/opt/bitnami/scripts/airflow-worker/run.sh"* || "$*" = *"/run.sh"* ]]; then
+        info "** Starting Airflow setup **"
+        /opt/bitnami/scripts/airflow-worker/setup.sh
+        info "** Airflow setup finished! **"
+    fi
+
+    echo ""
+    exec "$@"  
+
+
+# webserver_config.py configmap
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: airflow-webserver-config
+  namespace: "airflow-test"
+  labels:
+    app.kubernetes.io/name: airflow
+    helm.sh/chart: airflow-14.0.6
+    app.kubernetes.io/instance: airflow
+    app.kubernetes.io/managed-by: Helm
+data:
+  webserver-config.py: |-
+    """Default configuration for the Airflow webserver."""
+    from __future__ import annotations
+
+    import os
+
+    # from airflow.www.fab_security.manager import AUTH_DB
+    from airflow.www.fab_security.manager import AUTH_LDAP
+    # from airflow.www.fab_security.manager import AUTH_OAUTH
+    # from airflow.www.fab_security.manager import AUTH_OID
+    # from airflow.www.fab_security.manager import AUTH_REMOTE_USER
+
+    basedir = os.path.abspath(os.path.dirname(__file__))
+
+    # Flask-WTF flag for CSRF
+    WTF_CSRF_ENABLED = True
+
+    # airflow LDAP setting
+    AUTH_TYPE = AUTH_LDAP
+
+    AUTH_ROLE_ADMIN = 'Admin'
+    AUTH_ROLE_PUBLIC = 'Public'
+
+    AUTH_USER_REGISTRATION = True
+    AUTH_USER_REGISTRATION_ROLE = "Viewer"
+
+    AUTH_ROLES_SYNC_AT_LOGIN = False
+    PERMANENT_SESSION_LIFETIME = 1800
+
+    # TLS
+    AUTH_LDAP_USE_TLS = False
+    AUTH_LDAP_ALLOW_SELF_SIGNED = True
+
+    AUTH_LDAP_SERVER = "ldaps://corpldap.intel.com:3269"
+    AUTH_LDAP_SEARCH = "dc=corp,DC=intel,dc=com"
+
+    AUTH_LDAP_BIND_USER = "cn=sys_cactusi,ou=generic-account,OU=Resources,DC=ccr,DC=corp,DC=intel,DC=com"
+    AUTH_LDAP_BIND_PASSWORD = "xnnow06@"
+
+    AUTH_LDAP_UID_FIELD = "sAMAccountName"
+    #AUTH_LDAP_GROUP_FIELD = "memberOf"
+
+    #AUTH_ROLES_MAPPING = {
+    # "cn=GitHub - DataInfra Airflow Dags - Read,ou=Managed,ou=Groups,dc=amr,dc=corp,dc=intel,dc=com": ["Viewer"],
+    # "cn=GitHub - DataInfra Airflow Dags - Write,ou=Managed,ou=Groups,dc=amr,dc=corp,dc=intel,dc=com": ["User"],
+    #}
+
+    # session expire time
+    PERMANENT_SESSION_LIFETIME = 60*60  # 1h
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: data-airflow-logs-pvc
+  namespace: airflow-test
+spec:
+  accessModes:
+    - ReadWriteMany
+  volumeMode: Filesystem
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: longhorn
+
+---
+# Source: airflow/templates/rbac/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: airflow
+  namespace: "airflow-test"
+  labels:
+    app.kubernetes.io/name: airflow
+    helm.sh/chart: airflow-14.0.6
+    app.kubernetes.io/instance: airflow
+    app.kubernetes.io/managed-by: Helm
+automountServiceAccountToken: true
+---
+# Source: airflow/charts/postgresql/templates/secrets.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: airflow-postgresql
+  namespace: "airflow-test"
+  labels:
+    app.kubernetes.io/name: postgresql
+    helm.sh/chart: postgresql-12.1.3
+    app.kubernetes.io/instance: airflow
+    app.kubernetes.io/managed-by: Helm
+type: Opaque
+data:
+  # password: "ZzNacjJQTVBFZQ=="
+  password: "Z1ljWnJaaVEzRG4wYkx5"
+  # We don't auto-generate LDAP password when it's not provided as we do for other passwords
+---
+# Source: airflow/templates/config/secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: airflow
+  namespace: "airflow-test"
+  labels:
+    app.kubernetes.io/name: airflow
+    helm.sh/chart: airflow-14.0.6
+    app.kubernetes.io/instance: airflow
+    app.kubernetes.io/managed-by: Helm
+type: Opaque
+data:
+  airflow-password: "YWRtaW4="
+  # Airflow keys must be base64-encoded, hence we need to pipe to 'b64enc' twice
+  # The auto-generation mechanism available at "common.secrets.passwords.manage" isn't compatible with encoding twice
+  # Therefore, we can only use this function if the secret already exists
+  airflow-fernet-key: "ZVRZek5WaFpURVZtYUVJMWNYZE5SbGhLVm0xSmJrRmFNR3RpV1dWeFJWWT0="
+  airflow-secret-key: "UzBwQ1JXVlBkMHM1Y1hGcFoyRldSMWh2ZURGblVHTTNjSGhaYVdGcVJGbz0="
+---
+# Source: airflow/templates/config/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pod-template
+  namespace: "airflow-test"
+  labels:
+    app.kubernetes.io/name: airflow
+    helm.sh/chart: airflow-14.0.6
+    app.kubernetes.io/instance: airflow
+    app.kubernetes.io/managed-by: Helm
+data:
+  pod_template.yaml: |-
+    apiVersion: v1
+    kind: Pod
+    metadata:
+      name: k8s-executor-pod
+      # namespace: "airflow-test"
+      labels:
+        app.kubernetes.io/name: airflow
+        helm.sh/chart: airflow-14.0.6
+        app.kubernetes.io/instance: airflow
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/component: worker
+    spec:
+      affinity:
+        podAffinity:          
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/name: airflow
+                    app.kubernetes.io/instance: airflow
+                    app.kubernetes.io/component: worker
+                topologyKey: kubernetes.io/hostname
+              weight: 1
+        nodeAffinity:          
+      restartPolicy: Never
+      serviceAccountName: airflow
+      securityContext:
+        fsGroup: 1001
+      initContainers:
+        - name: clone-repositories-dag
+          image: "amr-registry.caas.intel.com/fia-cloud/airflow/git:2.38.1-debian-11-r17"
+          imagePullPolicy: "IfNotPresent"
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1001
+          command:
+            - /bin/bash
+          env:
+            - name: HTTP_PROXY
+              value: http://proxy-dmz.intel.com:912
+            - name: HTTPS_PROXY
+              value: http://proxy-dmz.intel.com:912
+            - name: NO_PROXY
+              value: intel.com,localhost,127.0.0.1                           
+          args:
+            - -ec
+            - |
+              . /opt/bitnami/scripts/libfs.sh
+              [[ -f "/opt/bitnami/scripts/git/entrypoint.sh" ]] && . /opt/bitnami/scripts/git/entrypoint.sh
+              is_dir_empty "/dags/airflowETL" && git clone https://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@github.com/intel-innersource/firmware.boot.uefi.iafw.devops.infrastructure.airflowETL.git --branch dev /dags/airflowETL
+          volumeMounts:
+            - name: git-cloned-dags
+              mountPath: /dags
+        - name: clone-repositories-provider
+          image: "amr-registry.caas.intel.com/fia-cloud/airflow/git:2.38.1-debian-11-r17"
+          imagePullPolicy: "IfNotPresent"
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1001
+          command:
+            - /bin/bash
+          env:
+            - name: HTTP_PROXY
+              value: http://proxy-dmz.intel.com:912
+            - name: HTTPS_PROXY
+              value: http://proxy-dmz.intel.com:912
+            - name: NO_PROXY
+              value: intel.com,localhost,127.0.0.1                           
+          args:
+            - -ec
+            - |
+              . /opt/bitnami/scripts/libfs.sh
+              [[ -f "/opt/bitnami/scripts/git/entrypoint.sh" ]] && . /opt/bitnami/scripts/git/entrypoint.sh
+              is_dir_empty "/providers/airflow-downstream" && git clone https://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@github.com/intel-innersource/firmware.boot.uefi.iafw.devops.infrastructure.airflow-downstream.git --branch dev /providers/airflow-downstream
+          volumeMounts:
+            - name: git-cloned-providers
+              mountPath: /providers
+        - name: k8s-executor-init-config
+          image: amr-registry.caas.intel.com/fia-cloud/airflow/airflow-worker:2.5.0-debian-11-r1
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1001
+          command:
+            - /bin/bash
+          args:
+            - -ec
+            - |
+                . /opt/bitnami/scripts/airflow-worker-env.sh
+                . /opt/bitnami/scripts/libairflowworker.sh
+
+                airflow_generate_config # Generate the config file
+                cp /opt/bitnami/airflow/airflow.cfg /opt/bitnami/airflow/k8s-executor-config/airflow.cfg
+          env:
+            - name: AIRFLOW_FERNET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: airflow
+                  key: airflow-fernet-key
+            - name: AIRFLOW_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: airflow
+                  key: airflow-secret-key
+            - name: AIRFLOW_LOAD_EXAMPLES
+              value: "no"
+            - name: AIRFLOW_DATABASE_NAME
+              value: "airflow_preprod"
+            - name: AIRFLOW_DATABASE_USERNAME
+              value: "airflow_preprod_so"
+            - name: AIRFLOW_DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: airflow-postgresql
+                  key: password
+            - name: AIRFLOW_DATABASE_HOST
+              value: "postgres5330-lb-or-in.dbaas.intel.com"
+            - name: AIRFLOW_DATABASE_PORT_NUMBER
+              value: "5433"
+            - name: AIRFLOW__KUBERNETES__NAMESPACE
+              value: airflow-test
+            - name: AIRFLOW__KUBERNETES__WORKER_CONTAINER_REPOSITORY
+              value: amr-registry.caas.intel.com/fia-cloud/airflow/airflow-worker
+            - name: AIRFLOW__KUBERNETES__WORKER_CONTAINER_TAG
+              value: 2.5.0-debian-11-r1
+            - name: AIRFLOW__KUBERNETES__IMAGE_PULL_POLICY
+              value: IfNotPresent
+            - name: AIRFLOW__KUBERNETES__DAGS_IN_IMAGE
+              value: "True"
+            - name: AIRFLOW__KUBERNETES__DELETE_WORKER_PODS
+              value: "True"
+            - name: AIRFLOW__KUBERNETES__DELETE_WORKER_PODS_ON_FAILURE
+              value: "False"
+            - name: AIRFLOW__KUBERNETES__WORKER_SERVICE_ACCOUNT_NAME
+              value: airflow
+            - name: AIRFLOW__KUBERNETES__POD_TEMPLATE_FILE
+              value: "/opt/bitnami/airflow/pod_template.yaml"
+            - name: AIRFLOW_EXECUTOR
+              value: KubernetesExecutor
+            - name: AIRFLOW_WEBSERVER_HOST
+              value: airflow
+            - name: AIRFLOW_WEBSERVER_PORT_NUMBER
+              value: "8080"
+          resources:
+            limits:
+              cpu: 250m
+              memory: 512Mi
+            requests:
+              cpu: 100m
+              memory: 256Mi
+          volumeMounts:
+            - name: k8s-executor-config
+              mountPath: /opt/bitnami/airflow/k8s-executor-config
+      containers:
+        - name: airflow-worker
+          image: amr-registry.caas.intel.com/fia-cloud/airflow/airflow-worker:2.5.0-debian-11-r1
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1001
+          env:
+            # Scheduler will load this pod_template.yaml and get all env here
+            - name: PYTHONPATH
+              value: /opt/bitnami/airflow/dags
+            - name: HTTP_PROXY
+              value: http://proxy-dmz.intel.com:912
+            - name: HTTPS_PROXY
+              value: http://proxy-dmz.intel.com:912
+            - name: NO_PROXY
+              value: intel.com,localhost,127.0.0.1   
+            - name: AIRFLOW__CORE__EXECUTOR
+              value: LocalExecutor
+            - name: AIRFLOW_FERNET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: airflow
+                  key: airflow-fernet-key
+            - name: AIRFLOW_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: airflow
+                  key: airflow-secret-key
+            - name: AIRFLOW_LOAD_EXAMPLES
+              value: "no"
+            - name: AIRFLOW_DATABASE_NAME
+              value: "airflow_preprod"
+            - name: AIRFLOW_DATABASE_USERNAME
+              value: "airflow_preprod_so"
+            - name: AIRFLOW_DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: airflow-postgresql
+                  key: password
+            - name: AIRFLOW_DATABASE_HOST
+              value: "postgres5330-lb-or-in.dbaas.intel.com"
+            - name: AIRFLOW_DATABASE_PORT_NUMBER
+              value: "5433"
+            
+            - name: AIRFLOW_EXECUTOR
+              value: KubernetesExecutor
+            - name: AIRFLOW_WEBSERVER_HOST
+              value: airflow
+            - name: AIRFLOW_WEBSERVER_PORT_NUMBER
+              value: "8080"
+          ports:
+            - name: worker
+              containerPort: 8793
+          resources:
+            limits:
+              cpu: 250m
+              memory: 512Mi
+            requests:
+              cpu: 100m
+              memory: 256Mi
+          livenessProbe:
+            failureThreshold: 6
+            initialDelaySeconds: 180
+            periodSeconds: 20
+            successThreshold: 1
+            timeoutSeconds: 5
+            tcpSocket:
+              port: worker
+          readinessProbe:
+            failureThreshold: 6
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 5
+            tcpSocket:
+              port: worker
+          volumeMounts:
+            - name: k8s-executor-config
+              mountPath: /opt/bitnami/airflow/airflow.cfg
+              subPath: airflow.cfg
+            - name: git-cloned-dags
+              mountPath: /opt/bitnami/airflow/dags/airflowETL
+              subPath: airflowETL
+            - name: git-cloned-providers
+              mountPath: /opt/bitnami/airflow/providers/airflow-downstream
+              subPath: airflow-downstream
+            - name: airflow-logs
+              mountPath: /opt/bitnami/airflow/logs  
+            - name: airflow-worker-entrypoint
+              mountPath: /opt/bitnami/scripts/airflow-worker/entrypoint.sh
+              subPath: entrypoint.sh
+      volumes:
+        - name: k8s-executor-config
+          emptyDir: {}
+        - name: git-cloned-dags
+          emptyDir: {}          
+        - name: git-cloned-providers
+          emptyDir: {}          
+        - name: airflow-logs
+          persistentVolumeClaim:
+            claimName: data-airflow-logs-pvc
+        - name: airflow-worker-entrypoint
+          configMap:
+            name: airflow-worker-entrypoint-config
+            defaultMode: 0777
+
+---
+# Source: airflow/templates/rbac/role.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: airflow
+  namespace: "airflow-test"
+  labels:
+    app.kubernetes.io/name: airflow
+    helm.sh/chart: airflow-14.0.6
+    app.kubernetes.io/instance: airflow
+    app.kubernetes.io/managed-by: Helm
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - "pods"
+    verbs:
+      - "create"
+      - "list"
+      - "get"
+      - "watch"
+      - "delete"
+      - "patch"
+  - apiGroups:
+      - ""
+    resources:
+      - "pods/log"
+    verbs:
+      - "get"
+  - apiGroups:
+      - ""
+    resources:
+      - "pods/exec"
+    verbs:
+      - "create"
+      - "get"
+---
+# Source: airflow/templates/rbac/rolebinding.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: airflow
+  namespace: "airflow-test"
+  labels:
+    app.kubernetes.io/name: airflow
+    helm.sh/chart: airflow-14.0.6
+    app.kubernetes.io/instance: airflow
+    app.kubernetes.io/managed-by: Helm
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: airflow
+subjects:
+  - kind: ServiceAccount
+    name: airflow
+    namespace: "airflow-test"
+---
+# Source: airflow/charts/postgresql/templates/primary/svc-headless.yaml
+# apiVersion: v1
+# kind: Service
+# metadata:
+#   name: airflow-postgresql-hl
+#   namespace: "airflow-test"
+#   labels:
+#     app.kubernetes.io/name: postgresql
+#     helm.sh/chart: postgresql-12.1.3
+#     app.kubernetes.io/instance: airflow
+#     app.kubernetes.io/managed-by: Helm
+#     app.kubernetes.io/component: primary
+#     # Use this annotation in addition to the actual publishNotReadyAddresses
+#     # field below because the annotation will stop being respected soon but the
+#     # field is broken in some versions of Kubernetes:
+#     # https://github.com/kubernetes/kubernetes/issues/58662
+#     service.alpha.kubernetes.io/tolerate-unready-endpoints: "true"
+# spec:
+#   type: ClusterIP
+#   clusterIP: None
+#   # We want all pods in the StatefulSet to have their addresses published for
+#   # the sake of the other Postgresql pods even before they're ready, since they
+#   # have to be able to talk to each other in order to become ready.
+#   publishNotReadyAddresses: true
+#   ports:
+#     - name: tcp-postgresql
+#       port: 5432
+#       targetPort: tcp-postgresql
+#   selector:
+#     app.kubernetes.io/name: postgresql
+#     app.kubernetes.io/instance: airflow
+#     app.kubernetes.io/component: primary
+# ---
+# # Source: airflow/charts/postgresql/templates/primary/svc.yaml
+# apiVersion: v1
+# kind: Service
+# metadata:
+#   name: airflow-postgresql
+#   namespace: "airflow-test"
+#   labels:
+#     app.kubernetes.io/name: postgresql
+#     helm.sh/chart: postgresql-12.1.3
+#     app.kubernetes.io/instance: airflow
+#     app.kubernetes.io/managed-by: Helm
+#     app.kubernetes.io/component: primary
+#   annotations:
+# spec:
+#   type: ClusterIP
+#   sessionAffinity: None
+#   ports:
+#     - name: tcp-postgresql
+#       port: 5432
+#       targetPort: tcp-postgresql
+#       nodePort: null
+#   selector:
+#     app.kubernetes.io/name: postgresql
+#     app.kubernetes.io/instance: airflow
+#     app.kubernetes.io/component: primary
+---
+# Source: airflow/templates/web/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: airflow
+  namespace: "airflow-test"
+  labels:
+    app.kubernetes.io/name: airflow
+    helm.sh/chart: airflow-14.0.6
+    app.kubernetes.io/instance: airflow
+    app.kubernetes.io/managed-by: Helm
+spec:
+  type: ClusterIP
+  sessionAffinity: None
+  ports:
+    - name: http
+      port: 8080
+      protocol: TCP
+      targetPort: http
+      nodePort: null
+  selector:
+    app.kubernetes.io/name: airflow
+    app.kubernetes.io/instance: airflow
+    app.kubernetes.io/component: web
+---
+# Source: airflow/templates/worker/service-headless.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: airflow-worker-hl
+  namespace: "airflow-test"
+  labels:
+    app.kubernetes.io/name: airflow
+    helm.sh/chart: airflow-14.0.6
+    app.kubernetes.io/instance: airflow
+    app.kubernetes.io/managed-by: Helm
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+    - name: worker
+      port: 8793
+      targetPort: worker
+  selector:
+    app.kubernetes.io/name: airflow
+    app.kubernetes.io/instance: airflow
+    app.kubernetes.io/component: worker
+---
+# Source: airflow/templates/scheduler/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: airflow-scheduler
+  namespace: "airflow-test"
+  labels:
+    app.kubernetes.io/name: airflow
+    helm.sh/chart: airflow-14.0.6
+    app.kubernetes.io/instance: airflow
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: scheduler
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: airflow
+      app.kubernetes.io/instance: airflow
+      app.kubernetes.io/component: scheduler
+  replicas: 1
+  strategy:
+    rollingUpdate: {}
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: airflow
+        helm.sh/chart: airflow-14.0.6
+        app.kubernetes.io/instance: airflow
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/component: scheduler
+      annotations:
+        checksum/configmap: bf3bd3b3b7080fe18cdfd2ffcd462ed97e755f2f3d54030f6900e8c8ca4f61f0
+    spec:
+      
+      affinity:
+        podAffinity:
+          
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/name: airflow
+                    app.kubernetes.io/instance: airflow
+                    app.kubernetes.io/component: scheduler
+                topologyKey: kubernetes.io/hostname
+              weight: 1
+        nodeAffinity:
+          
+      serviceAccountName: airflow
+      securityContext:
+        fsGroup: 1001
+      initContainers:
+        - name: clone-repositories-dag
+          image: "amr-registry.caas.intel.com/fia-cloud/airflow/git:2.38.1-debian-11-r17"
+          imagePullPolicy: "IfNotPresent"
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1001
+          command:
+            - /bin/bash
+          env:
+            - name: HTTP_PROXY
+              value: http://proxy-dmz.intel.com:912
+            - name: HTTPS_PROXY
+              value: http://proxy-dmz.intel.com:912
+            - name: NO_PROXY
+              value: intel.com,localhost,127.0.0.1               
+          args:
+            - -ec
+            - |
+              . /opt/bitnami/scripts/libfs.sh
+              [[ -f "/opt/bitnami/scripts/git/entrypoint.sh" ]] && . /opt/bitnami/scripts/git/entrypoint.sh
+              is_dir_empty "/dags/airflowETL" &&   git clone https://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@github.com/intel-innersource/firmware.boot.uefi.iafw.devops.infrastructure.airflowETL.git --branch dev /dags/airflowETL
+          volumeMounts:
+            - name: git-cloned-dags
+              mountPath: /dags
+        - name: clone-repositories-provider
+          image: "amr-registry.caas.intel.com/fia-cloud/airflow/git:2.38.1-debian-11-r17"
+          imagePullPolicy: "IfNotPresent"
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1001
+          command:
+            - /bin/bash
+          env:
+            - name: HTTP_PROXY
+              value: http://proxy-dmz.intel.com:912
+            - name: HTTPS_PROXY
+              value: http://proxy-dmz.intel.com:912
+            - name: NO_PROXY
+              value: intel.com,localhost,127.0.0.1                           
+          args:
+            - -ec
+            - |
+              . /opt/bitnami/scripts/libfs.sh
+              [[ -f "/opt/bitnami/scripts/git/entrypoint.sh" ]] && . /opt/bitnami/scripts/git/entrypoint.sh
+              is_dir_empty "/providers/airflow-downstream" && git clone https://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@github.com/intel-innersource/firmware.boot.uefi.iafw.devops.infrastructure.airflow-downstream.git --branch dev /providers/airflow-downstream
+          volumeMounts:
+            - name: git-cloned-providers
+              mountPath: /providers                    
+      containers:
+        - name: sync-repositories
+          image: "amr-registry.caas.intel.com/fia-cloud/airflow/git:2.38.1-debian-11-r17"
+          imagePullPolicy: "IfNotPresent"
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1001
+          command:
+            - /bin/bash
+          env:
+            - name: HTTP_PROXY
+              value: http://proxy-dmz.intel.com:912
+            - name: HTTPS_PROXY
+              value: http://proxy-dmz.intel.com:912
+            - name: NO_PROXY
+              value: intel.com,localhost,127.0.0.1                           
+          args:
+            - -ec
+            - |
+              [[ -f "/opt/bitnami/scripts/git/entrypoint.sh" ]] && . /opt/bitnami/scripts/git/entrypoint.sh
+              while true; do
+                  cd /dags/airflowETL && git pull origin dev || true
+                  cd /providers/airflow-downstream && git pull origin dev || true
+                  sleep 60
+              done
+          volumeMounts:
+            - name: git-cloned-dags
+              mountPath: /dags
+            - name: git-cloned-providers
+              mountPath: /providers              
+        - name: airflow-scheduler
+          image: "amr-registry.caas.intel.com/fia-cloud/airflow/airflow-scheduler:2.5.0-debian-11-r1"
+          imagePullPolicy: "IfNotPresent"
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1001
+          env:
+            - name: AIRFLOW_FERNET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: airflow
+                  key: airflow-fernet-key
+            - name: AIRFLOW_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: airflow
+                  key: airflow-secret-key
+            - name: AIRFLOW_LOAD_EXAMPLES
+              value: "no"
+            - name: AIRFLOW_DATABASE_NAME
+              value: "airflow_preprod"
+            - name: AIRFLOW_DATABASE_USERNAME
+              value: "airflow_preprod_so"
+            - name: AIRFLOW_DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: airflow-postgresql
+                  key: password
+            - name: AIRFLOW_DATABASE_HOST
+              value: "postgres5330-lb-or-in.dbaas.intel.com"
+            - name: AIRFLOW_DATABASE_PORT_NUMBER
+              value: "5433"                    
+            - name: AIRFLOW__KUBERNETES__NAMESPACE
+              value: airflow-test
+            - name: AIRFLOW__KUBERNETES__WORKER_CONTAINER_REPOSITORY
+              value: amr-registry.caas.intel.com/fia-cloud/airflow/airflow-worker
+            - name: AIRFLOW__KUBERNETES__WORKER_CONTAINER_TAG
+              value: 2.5.0-debian-11-r1
+            - name: AIRFLOW__KUBERNETES__IMAGE_PULL_POLICY
+              value: IfNotPresent
+            - name: AIRFLOW__KUBERNETES__DAGS_IN_IMAGE
+              value: "True"
+            - name: AIRFLOW__KUBERNETES__DELETE_WORKER_PODS
+              value: "True"
+            - name: AIRFLOW__KUBERNETES__DELETE_WORKER_PODS_ON_FAILURE
+              value: "False"
+            - name: AIRFLOW__KUBERNETES__WORKER_SERVICE_ACCOUNT_NAME
+              value: airflow
+            - name: AIRFLOW__KUBERNETES__POD_TEMPLATE_FILE
+              value: "/opt/bitnami/airflow/pod_template.yaml"
+            - name: AIRFLOW_EXECUTOR
+              value: KubernetesExecutor
+            - name: AIRFLOW_WEBSERVER_HOST
+              value: airflow
+            - name: AIRFLOW_WEBSERVER_PORT_NUMBER
+              value: "8080"
+          resources:
+            limits:
+              cpu: 250m
+              memory: 1024Mi
+            requests:
+              cpu: 100m
+              memory: 256Mi
+          volumeMounts:
+            - name: custom-configuration-file
+              mountPath: /opt/bitnami/airflow/pod_template.yaml
+              subPath: pod_template.yaml
+            - name: git-cloned-dags
+              mountPath: /opt/bitnami/airflow/dags/airflowETL
+              subPath: airflowETL
+            - name: git-cloned-providers
+              mountPath: /opt/bitnami/airflow/providers/airflow-downstream
+              subPath: airflow-downstream              
+            - name: airflow-logs
+              mountPath: /opt/bitnami/airflow/logs   
+            - name: airflow-scheduler-entrypoint
+              mountPath: /opt/bitnami/scripts/airflow-scheduler/entrypoint.sh
+              subPath: entrypoint.sh
+      volumes:
+        - name: custom-configuration-file
+          configMap:
+            name: pod-template
+        - name: git-cloned-dags
+          emptyDir: {}
+        - name: git-cloned-providers
+          emptyDir: {}
+        - name: airflow-logs
+          persistentVolumeClaim:
+            claimName: data-airflow-logs-pvc
+        - name: airflow-scheduler-entrypoint
+          configMap:
+            name: airflow-scheduler-entrypoint-config
+            defaultMode: 0777
+---
+# Source: airflow/templates/web/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: airflow-web
+  namespace: "airflow-test"
+  labels:
+    app.kubernetes.io/name: airflow
+    helm.sh/chart: airflow-14.0.6
+    app.kubernetes.io/instance: airflow
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: web
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: airflow
+      app.kubernetes.io/instance: airflow
+      app.kubernetes.io/component: web
+  replicas: 1
+  strategy:
+    rollingUpdate: {}
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: airflow
+        helm.sh/chart: airflow-14.0.6
+        app.kubernetes.io/instance: airflow
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/component: web
+      annotations:
+        checksum/configmap: bf3bd3b3b7080fe18cdfd2ffcd462ed97e755f2f3d54030f6900e8c8ca4f61f0
+    spec:
+      
+      affinity:
+        podAffinity:
+          
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/name: airflow
+                    app.kubernetes.io/instance: airflow
+                    app.kubernetes.io/component: web
+                topologyKey: kubernetes.io/hostname
+              weight: 1
+        nodeAffinity:
+          
+      serviceAccountName: airflow
+      securityContext:
+        fsGroup: 1001
+      initContainers:
+        - name: clone-repositories-dag
+          image: "amr-registry.caas.intel.com/fia-cloud/airflow/git:2.38.1-debian-11-r17"
+          imagePullPolicy: "IfNotPresent"
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1001
+          command:
+            - /bin/bash
+          env:
+            - name: HTTP_PROXY
+              value: http://proxy-dmz.intel.com:912
+            - name: HTTPS_PROXY
+              value: http://proxy-dmz.intel.com:912
+            - name: NO_PROXY
+              value: intel.com,localhost,127.0.0.1                           
+          args:
+            - -ec
+            - |
+              . /opt/bitnami/scripts/libfs.sh
+              [[ -f "/opt/bitnami/scripts/git/entrypoint.sh" ]] && . /opt/bitnami/scripts/git/entrypoint.sh
+              is_dir_empty "/dags/airflowETL" &&   git clone https://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@github.com/intel-innersource/firmware.boot.uefi.iafw.devops.infrastructure.airflowETL.git --branch dev /dags/airflowETL
+          volumeMounts:
+            - name: git-cloned-dags
+              mountPath: /dags
+        - name: clone-repositories-provider
+          image: "amr-registry.caas.intel.com/fia-cloud/airflow/git:2.38.1-debian-11-r17"
+          imagePullPolicy: "IfNotPresent"
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1001
+          command:
+            - /bin/bash
+          env:
+            - name: HTTP_PROXY
+              value: http://proxy-dmz.intel.com:912
+            - name: HTTPS_PROXY
+              value: http://proxy-dmz.intel.com:912
+            - name: NO_PROXY
+              value: intel.com,localhost,127.0.0.1                           
+          args:
+            - -ec
+            - |
+              . /opt/bitnami/scripts/libfs.sh
+              [[ -f "/opt/bitnami/scripts/git/entrypoint.sh" ]] && . /opt/bitnami/scripts/git/entrypoint.sh
+              is_dir_empty "/providers/airflow-downstream" && git clone https://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@github.com/intel-innersource/firmware.boot.uefi.iafw.devops.infrastructure.airflow-downstream.git --branch dev /providers/airflow-downstream
+          volumeMounts:
+            - name: git-cloned-providers
+              mountPath: /providers              
+      containers:
+        - name: sync-repositories
+          image: "amr-registry.caas.intel.com/fia-cloud/airflow/git:2.38.1-debian-11-r17"
+          imagePullPolicy: "IfNotPresent"
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1001
+          command:
+            - /bin/bash
+          env:
+            - name: HTTP_PROXY
+              value: http://proxy-dmz.intel.com:912
+            - name: HTTPS_PROXY
+              value: http://proxy-dmz.intel.com:912
+            - name: NO_PROXY
+              value: intel.com,localhost,127.0.0.1                           
+          args:
+            - -ec
+            - |
+              [[ -f "/opt/bitnami/scripts/git/entrypoint.sh" ]] && . /opt/bitnami/scripts/git/entrypoint.sh
+              while true; do
+                  cd /dags/airflowETL && git pull origin dev || true
+                  cd /providers/airflow-downstream && git pull origin dev || true
+                  sleep 60
+              done
+          volumeMounts:
+            - name: git-cloned-dags
+              mountPath: /dags
+            - name: git-cloned-providers
+              mountPath: /providers
+        - name: airflow-web
+          image: amr-registry.caas.intel.com/fia-cloud/airflow/airflow:2.5.0-debian-11-r2
+          imagePullPolicy: "IfNotPresent"
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1001
+          env:
+            - name: AIRFLOW_FERNET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: airflow
+                  key: airflow-fernet-key
+            - name: AIRFLOW_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: airflow
+                  key: airflow-secret-key
+            - name: AIRFLOW_LOAD_EXAMPLES
+              value: "no"
+            - name: AIRFLOW_DATABASE_NAME
+              value: "airflow_preprod"
+            - name: AIRFLOW_DATABASE_USERNAME
+              value: "airflow_preprod_so"
+            - name: AIRFLOW_DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: airflow-postgresql
+                  key: password
+            - name: AIRFLOW_DATABASE_HOST
+              value: "postgres5330-lb-or-in.dbaas.intel.com"
+            - name: AIRFLOW_DATABASE_PORT_NUMBER
+              value: "5433"                      
+            - name: AIRFLOW__KUBERNETES__NAMESPACE
+              value: airflow-test
+            - name: AIRFLOW__KUBERNETES__WORKER_CONTAINER_REPOSITORY
+              value: amr-registry.caas.intel.com/fia-cloud/airflow/airflow-worker
+            - name: AIRFLOW__KUBERNETES__WORKER_CONTAINER_TAG
+              value: 2.5.0-debian-11-r1
+            - name: AIRFLOW__KUBERNETES__IMAGE_PULL_POLICY
+              value: IfNotPresent
+            - name: AIRFLOW__KUBERNETES__DAGS_IN_IMAGE
+              value: "True"
+            - name: AIRFLOW__KUBERNETES__DELETE_WORKER_PODS
+              value: "True"
+            - name: AIRFLOW__KUBERNETES__DELETE_WORKER_PODS_ON_FAILURE
+              value: "False"
+            - name: AIRFLOW__KUBERNETES__WORKER_SERVICE_ACCOUNT_NAME
+              value: airflow
+            - name: AIRFLOW__KUBERNETES__POD_TEMPLATE_FILE
+              value: "/opt/bitnami/airflow/pod_template.yaml"
+            - name: AIRFLOW_EXECUTOR
+              value: KubernetesExecutor
+            - name: AIRFLOW_WEBSERVER_HOST
+              value: '0.0.0.0'
+            - name: AIRFLOW_WEBSERVER_PORT_NUMBER
+              value: "8080"
+            - name: AIRFLOW_USERNAME
+              value: admin
+            - name: AIRFLOW_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: airflow
+                  key: airflow-password
+            - name: AIRFLOW_BASE_URL
+              value: "http://127.0.0.1:8080"
+            - name: AIRFLOW_LDAP_ENABLE
+              value: "no"
+          ports:
+            - name: http
+              containerPort: 8080
+          livenessProbe:
+            failureThreshold: 6
+            initialDelaySeconds: 180
+            periodSeconds: 20
+            successThreshold: 1
+            timeoutSeconds: 5
+            tcpSocket:
+              port: http
+          readinessProbe:
+            failureThreshold: 6
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 5
+            tcpSocket:
+              port: http
+          resources:
+            limits:
+              cpu: 250m
+              memory: 1024Mi
+            requests:
+              cpu: 100m
+              memory: 256Mi
+          volumeMounts:
+            - name: git-cloned-dags
+              mountPath: /opt/bitnami/airflow/dags/airflowETL
+              subPath: airflowETL
+            - name: git-cloned-providers
+              mountPath: /opt/bitnami/airflow/providers/airflow-downstream
+              subPath: airflow-downstream
+            - name: airflow-logs
+              mountPath: /opt/bitnami/airflow/logs
+            - name: airflow-webserver-config
+              mountPath: /opt/bitnami/airflow/webserver_config.py
+              subPath: webserver-config.py
+            - name: airflow-web-entrypoint
+              mountPath: /opt/bitnami/airflow/entrypoint.sh 
+              subPath: entrypoint.sh
+      volumes:
+        - name: git-cloned-dags
+          emptyDir: {}
+        - name: git-cloned-providers
+          emptyDir: {}                    
+        - name: airflow-logs
+          persistentVolumeClaim:
+            claimName: data-airflow-logs-pvc
+        - name: airflow-webserver-config
+          configMap:
+            name: airflow-webserver-config
+        - name: airflow-web-entrypoint
+          configMap:
+            name: airflow-web-entrypoint-config
+            defaultMode: 0777
+---
+# Source: airflow/charts/postgresql/templates/primary/statefulset.yaml
+# apiVersion: apps/v1
+# kind: StatefulSet
+# metadata:
+#   name: airflow-postgresql
+#   namespace: "airflow-test"
+#   labels:
+#     app.kubernetes.io/name: postgresql
+#     helm.sh/chart: postgresql-12.1.3
+#     app.kubernetes.io/instance: airflow
+#     app.kubernetes.io/managed-by: Helm
+#     app.kubernetes.io/component: primary
+#   annotations:
+# spec:
+#   replicas: 1
+#   serviceName: airflow-postgresql-hl
+#   updateStrategy:
+#     rollingUpdate: {}
+#     type: RollingUpdate
+#   selector:
+#     matchLabels:
+#       app.kubernetes.io/name: postgresql
+#       app.kubernetes.io/instance: airflow
+#       app.kubernetes.io/component: primary
+#   template:
+#     metadata:
+#       name: airflow-postgresql
+#       labels:
+#         app.kubernetes.io/name: postgresql
+#         helm.sh/chart: postgresql-12.1.3
+#         app.kubernetes.io/instance: airflow
+#         app.kubernetes.io/managed-by: Helm
+#         app.kubernetes.io/component: primary
+#       annotations:
+#     spec:
+#       serviceAccountName: default
+      
+#       affinity:
+#         podAffinity:
+          
+#         podAntiAffinity:
+#           preferredDuringSchedulingIgnoredDuringExecution:
+#             - podAffinityTerm:
+#                 labelSelector:
+#                   matchLabels:
+#                     app.kubernetes.io/name: postgresql
+#                     app.kubernetes.io/instance: airflow
+#                     app.kubernetes.io/component: primary
+#                 topologyKey: kubernetes.io/hostname
+#               weight: 1
+#         nodeAffinity:
+          
+#       securityContext:
+#         fsGroup: 1001
+#       hostNetwork: false
+#       hostIPC: false
+#       initContainers:
+#       containers:
+#         - name: postgresql
+#           image: docker.io/bitnami/postgresql:15.1.0-debian-11-r7
+#           imagePullPolicy: "IfNotPresent"
+#           securityContext:
+#             runAsUser: 1001
+#           env:
+#             - name: BITNAMI_DEBUG
+#               value: "false"
+#             - name: POSTGRESQL_PORT_NUMBER
+#               value: "5432"
+#             - name: POSTGRESQL_VOLUME_DIR
+#               value: "/bitnami/postgresql"
+#             - name: PGDATA
+#               value: "/bitnami/postgresql/data"
+#             # Authentication
+#             - name: POSTGRES_USER
+#               value: "bn_airflow"
+#             - name: POSTGRES_PASSWORD
+#               valueFrom:
+#                 secretKeyRef:
+#                   name: airflow-postgresql
+#                   key: password
+#             - name: POSTGRES_DB
+#               value: "bitnami_airflow"
+#             # Replication
+#             # Initdb
+#             # Standby
+#             # LDAP
+#             - name: POSTGRESQL_ENABLE_LDAP
+#               value: "no"
+#             # TLS
+#             - name: POSTGRESQL_ENABLE_TLS
+#               value: "no"
+#             # Audit
+#             - name: POSTGRESQL_LOG_HOSTNAME
+#               value: "false"
+#             - name: POSTGRESQL_LOG_CONNECTIONS
+#               value: "false"
+#             - name: POSTGRESQL_LOG_DISCONNECTIONS
+#               value: "false"
+#             - name: POSTGRESQL_PGAUDIT_LOG_CATALOG
+#               value: "off"
+#             # Others
+#             - name: POSTGRESQL_CLIENT_MIN_MESSAGES
+#               value: "error"
+#             - name: POSTGRESQL_SHARED_PRELOAD_LIBRARIES
+#               value: "pgaudit"
+#           ports:
+#             - name: tcp-postgresql
+#               containerPort: 5432
+#           livenessProbe:
+#             failureThreshold: 6
+#             initialDelaySeconds: 30
+#             periodSeconds: 10
+#             successThreshold: 1
+#             timeoutSeconds: 5
+#             exec:
+#               command:
+#                 - /bin/sh
+#                 - -c
+#                 - exec pg_isready -U "bn_airflow" -d "dbname=bitnami_airflow" -h 127.0.0.1 -p 5432
+#           readinessProbe:
+#             failureThreshold: 6
+#             initialDelaySeconds: 5
+#             periodSeconds: 10
+#             successThreshold: 1
+#             timeoutSeconds: 5
+#             exec:
+#               command:
+#                 - /bin/sh
+#                 - -c
+#                 - -e
+                
+#                 - |
+#                   exec pg_isready -U "bn_airflow" -d "dbname=bitnami_airflow" -h 127.0.0.1 -p 5432
+#                   [ -f /opt/bitnami/postgresql/tmp/.initialized ] || [ -f /bitnami/postgresql/.initialized ]
+#           resources:
+#             limits:
+#               cpu: 250m
+#               memory: 1024Mi
+#             requests:
+#               cpu: 100m
+#               memory: 256Mi
+#           volumeMounts:
+#             - name: dshm
+#               mountPath: /dev/shm
+#             - name: data
+#               mountPath: /bitnami/postgresql
+#       volumes:
+#         - name: dshm
+#           emptyDir:
+#             medium: Memory
+#   volumeClaimTemplates:
+#     - metadata:
+#         name: data
+#       spec:
+#         accessModes:
+#           - "ReadWriteOnce"
+#         resources:
+#           requests:
+#             storage: "20Gi"
+#         storageClassName: longhorn

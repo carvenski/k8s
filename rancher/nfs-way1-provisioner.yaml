@@ -1,0 +1,349 @@
+# k8s NFS storage example, refer to
+# https://github.com/appscode/third-party-tools/blob/master/storage/nfs/README.md
+#   - deploy a nfs server inside k8 by node localpath
+#   - pod using nfs volume/PVC/PV/StorageClass
+
+# ---
+# apiVersion: apps/v1
+# kind: Deployment
+# metadata:
+#   name: nfs-server
+#   namespace: nfs
+# spec:
+#   selector:
+#     matchLabels:
+#       app: nfs-server
+#   template:
+#     metadata:
+#       labels:
+#         app: nfs-server
+#     spec:
+#       containers:
+#       - name: nfs-server
+#         image: k8s.gcr.io/volume-nfs:0.8
+#         ports:
+#         - name: nfs
+#           containerPort: 2049
+#         - name: mountd
+#           containerPort: 20048
+#         - name: rpcbind
+#           containerPort: 111
+#         securityContext:
+#           privileged: true
+#         volumeMounts:
+#         - name: data
+#           mountPath: /exports
+#       volumes:
+#       - name: data
+#         hostPath:
+#           path: /data/nfs # store all data in "/data/nfs" directory of the node where it is running
+#           type: DirectoryOrCreate # if the directory does not exist then create it
+# ---
+# apiVersion: v1
+# kind: Service
+# metadata:
+#   name: nfs-server-service
+#   namespace: nfs
+# spec:
+#   ports:
+#   - name: nfs
+#     port: 2049
+#   - name: mountd
+#     port: 20048
+#   - name: rpcbind
+#     port: 111
+#   selector:
+#     app: nfs-server # must match with the label of NFS pod
+# Now, we can access the NFS server using dns: 
+#    nfs-server-service.nfs.svc.cluster.local
+# If you want to access the NFS server from outside of the cluster, 
+# you have to create NodePort or LoadBalancer type Service    
+
+# ===========================================================================
+# require k3s node installed nfs-utils and can mount nfs server success first 
+#     zypper install nfs-utils
+# ===========================================================================
+
+# -----------------------------------------
+# # pod Use NFS through self volume example
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nfs-demo-pod
+  namespace: nfs
+  labels:
+    app: nfs-demo-pod
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nfs-demo-pod
+  template:
+    metadata:
+      labels:
+        app: nfs-demo-pod
+    spec:
+      containers:
+      - name: busybox
+        image: busybox:1.36.0
+        command:
+        - sleep
+        - "infinity"
+        volumeMounts:
+        - name: data
+          mountPath: /demo/data
+      volumes:
+      - name: data
+        nfs:    
+          server: ubuntu-build-llvm.sh.intel.com
+          path: /root/nfs/nfs-demo-pod
+# "/nfs-demo-pod" folder must already exist inside "/exports" directory of NFS server
+
+
+# ------------------------------------
+# # pod Use NFS through PVC/PV example
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: nfs-pv
+  namespace: nfs
+  labels:
+    app: nfs-pv
+spec:
+  capacity:
+    storage: 10Mi
+  accessModes:
+    - ReadWriteMany
+  nfs:
+    server: ubuntu-build-llvm.sh.intel.com
+    path: /root/nfs/nfs-demo-pod-pvc
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nfs-pvc
+  namespace: nfs
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: ""
+  resources:
+    requests:
+      storage: 10Mi
+  selector:
+    matchLabels:
+      app: nfs-pv
+---      
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nfs-demo-pod-pvc
+  namespace: nfs
+  labels:
+    app: nfs-demo-pod-pvc
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nfs-demo-pod-pvc
+  template:
+    metadata:
+      labels:
+        app: nfs-demo-pod-pvc
+    spec:
+      containers:
+      - name: busybox
+        image: busybox:1.36.0
+        command:
+        - sleep
+        - "infinity"
+        volumeMounts:
+        - name: data
+          mountPath: /demo/data
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: nfs-pvc
+
+
+# --------------------------------------------------------
+# pod Use NFS through storageClass/provisioner/PVC example
+# refer to https://github.com/kubernetes-sigs/nfs-subdir-external-provisioner/blob/master/charts/nfs-subdir-external-provisioner/README.md
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  namespace: nfs
+  labels:
+    app: nfs-subdir-external-provisioner
+  name: nfs-subdir-external-provisioner
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  labels:
+    app: nfs-subdir-external-provisioner
+  name: nfs-subdir-external-provisioner-runner
+rules:
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["persistentvolumes"]
+    verbs: ["get", "list", "watch", "create", "delete"]
+  - apiGroups: [""]
+    resources: ["persistentvolumeclaims"]
+    verbs: ["get", "list", "watch", "update"]
+  - apiGroups: ["storage.k8s.io"]
+    resources: ["storageclasses"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create", "update", "patch"]
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  labels:
+    app: nfs-subdir-external-provisioner
+  name: run-nfs-subdir-external-provisioner
+subjects:
+  - kind: ServiceAccount
+    name: nfs-subdir-external-provisioner
+    namespace: nfs
+roleRef:
+  kind: ClusterRole
+  name: nfs-subdir-external-provisioner-runner
+  apiGroup: rbac.authorization.k8s.io
+---
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  namespace: nfs
+  labels:
+    app: nfs-subdir-external-provisioner
+  name: leader-locking-nfs-subdir-external-provisioner
+rules:
+  - apiGroups: [""]
+    resources: ["endpoints"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  namespace: nfs
+  labels:
+    app: nfs-subdir-external-provisioner
+  name: leader-locking-nfs-subdir-external-provisioner
+subjects:
+  - kind: ServiceAccount
+    name: nfs-subdir-external-provisioner
+    namespace: nfs
+roleRef:
+  kind: Role
+  name: leader-locking-nfs-subdir-external-provisioner
+  apiGroup: rbac.authorization.k8s.io
+---
+# nfs-subdir-external-provisioner deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: nfs
+  name: nfs-subdir-external-provisioner
+  labels:
+    app: nfs-subdir-external-provisioner
+spec:
+  replicas: 1
+  strategy:
+    # 
+    type: Recreate
+  selector:
+    matchLabels:
+      app: nfs-subdir-external-provisioner
+  template:
+    metadata:
+      labels:
+        app: nfs-subdir-external-provisioner
+    spec:
+      serviceAccountName: nfs-subdir-external-provisioner
+      containers:
+        - name: nfs-subdir-external-provisioner
+          image: "registry.k8s.io/sig-storage/nfs-subdir-external-provisioner:v4.0.2"
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - name: nfs-subdir-external-provisioner-root
+              mountPath: /persistentvolumes
+          env:
+            # NOTE: this need to be exactly same with StorageClass provisioner
+            - name: PROVISIONER_NAME
+              value: cluster.local/nfs-subdir-external-provisioner
+            - name: NFS_SERVER
+              value: ubuntu-build-llvm.sh.intel.com
+            - name: NFS_PATH
+              value: /root/nfs/nfs-pv-data
+      volumes:
+        - name: nfs-subdir-external-provisioner-root
+          nfs:
+            server: ubuntu-build-llvm.sh.intel.com
+            path: /root/nfs/nfs-pv-data
+---
+# StorageClass.provisioner will dynamicly create dir in nfs server, name with /ns-pvc-pv, 
+# we don't need create dir by ourself any more
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  namespace: nfs
+  labels:
+    app: nfs-subdir-external-provisioner
+  name: nfs-storageclass-demo
+provisioner: cluster.local/nfs-subdir-external-provisioner # provisioner name
+allowVolumeExpansion: true
+reclaimPolicy: Delete
+volumeBindingMode: Immediate
+parameters:
+  archiveOnDelete: "true"
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nfs-pvc-2
+  namespace: nfs
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: nfs-storageclass-demo
+  resources:
+    requests:
+      storage: 10Mi
+---      
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nfs-demo-pod-pvc-2
+  namespace: nfs
+  labels:
+    app: nfs-demo-pod-pvc-2
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nfs-demo-pod-pvc-2
+  template:
+    metadata:
+      labels:
+        app: nfs-demo-pod-pvc-2
+    spec:
+      containers:
+      - name: busybox
+        image: busybox:1.36.0
+        command:
+        - sleep
+        - "infinity"
+        volumeMounts:
+        - name: data
+          mountPath: /demo/data
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: nfs-pvc-2
