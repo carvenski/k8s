@@ -1,0 +1,15 @@
+#!/bin/bash
+
+# How-To debug functional tests:
+# SWIFT_TEST_IN_PROCESS=1 tox -e func -- --pdb test.functional.tests.TestFile.testCopy
+
+SRC_DIR=$(dirname $(realpath "$0"))
+
+cd ${SRC_DIR} > /dev/null
+export TESTS_DIR=${SRC_DIR}/test/functional
+ARGS="run --concurrency 1 $@"
+stestr $ARGS || stestr run --concurrency 1 --failing
+rvalue=$?
+cd -  > /dev/null
+
+exit $rvalue

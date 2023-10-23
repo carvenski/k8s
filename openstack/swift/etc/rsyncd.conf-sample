@@ -1,0 +1,81 @@
+uid = swift
+gid = swift
+log file = /var/log/rsyncd.log
+pid file = /var/run/rsyncd.pid
+# since rsync default for reverse lookup is true, you have to set it to false
+# here globally or after a few 100 nodes your dns team will fuss at you
+reverse lookup = false
+
+[account]
+max connections = 2
+path = /srv/node
+read only = false
+lock file = /var/lock/account.lock
+
+[container]
+max connections = 4
+path = /srv/node
+read only = false
+lock file = /var/lock/container.lock
+
+[object]
+max connections = 8
+path = /srv/node
+read only = false
+lock file = /var/lock/object.lock
+
+
+# If rsync_module includes the device, you can tune rsyncd to permit 4
+# connections per device instead of simply allowing 8 connections for all
+# devices:
+# rsync_module = {replication_ip}::object_{device}
+#
+# (if devices in your object ring are named sda, sdb and sdc)
+#
+#[object_sda]
+#max connections = 4
+#path = /srv/node
+#read only = false
+#lock file = /var/lock/object_sda.lock
+#
+#[object_sdb]
+#max connections = 4
+#path = /srv/node
+#read only = false
+#lock file = /var/lock/object_sdb.lock
+#
+#[object_sdc]
+#max connections = 4
+#path = /srv/node
+#read only = false
+#lock file = /var/lock/object_sdc.lock
+
+
+# On a swift-all-in-one VM, you might tune rsync by replication port instead:
+# rsync_module = {replication_ip}::object{replication_port}
+#
+# So, on your SAIO, you have to set the following rsyncd configuration:
+#
+#[object6210]
+#max connections = 25
+#path = /srv/1/node/
+#read only = false
+#lock file = /var/lock/object6210.lock
+#
+#[object6220]
+#max connections = 25
+#path = /srv/2/node/
+#read only = false
+#lock file = /var/lock/object6220.lock
+#
+#[object6230]
+#max connections = 25
+#path = /srv/3/node/
+#read only = false
+#lock file = /var/lock/object6230.lock
+#
+#[object6240]
+#max connections = 25
+#path = /srv/4/node/
+#read only = false
+#lock file = /var/lock/object6240.lock

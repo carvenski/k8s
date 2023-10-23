@@ -1,0 +1,529 @@
+- nodeset:
+    name: neutron-three-node-jammy
+    nodes:
+      - name: controller
+        label: ubuntu-jammy
+      - name: compute1
+        label: ubuntu-jammy
+      - name: compute2
+        label: ubuntu-jammy
+    groups:
+      # Node where tests are executed and test results collected
+      - name: tempest
+        nodes:
+          - controller
+      # Nodes running the compute service
+      - name: compute
+        nodes:
+          - compute1
+          - compute2
+      # Nodes that are not the controller
+      - name: subnode
+        nodes:
+          - compute1
+          - compute2
+      # Switch node for multinode networking setup
+      - name: switch
+        nodes:
+          - controller
+      # Peer nodes for multinode networking setup
+      - name: peers
+        nodes:
+          - compute1
+          - compute2
+
+- job:
+    name: neutron-ovs-tempest-dvr-ha-multinode-full
+    parent: tempest-multinode-full-py3
+    nodeset: neutron-three-node-jammy
+    timeout: 10800
+    roles:
+      - zuul: openstack/neutron-tempest-plugin
+    required-projects:
+      - openstack/neutron
+      - openstack/tempest
+    pre-run: playbooks/dvr-multinode-scenario-pre-run.yaml
+    irrelevant-files: &openvswitch-irrelevant-files
+      - ^\.pylintrc$
+      - ^test-requirements.txt$
+      - ^releasenotes/.*$
+      - ^doc/.*$
+      - ^setup.cfg$
+      - ^.*\.conf\.sample$
+      - ^.*\.rst$
+      - ^neutron/locale/.*$
+      - ^neutron/tests/.*$
+      - ^tools/.*$
+      - ^tox.ini$
+      - ^plugin.spec$
+      - ^tools/ovn_migration/.*$
+      - ^neutron/agent/ovn/.*$
+      - ^neutron/agent/windows/.*$
+      - ^neutron/plugins/ml2/drivers/linuxbridge/.*$
+      - ^neutron/plugins/ml2/drivers/macvtap/.*$
+      - ^neutron/plugins/ml2/drivers/mech_sriov/.*$
+      - ^neutron/plugins/ml2/drivers/ovn/.*$
+      - ^neutron/services/ovn_l3/.*$
+      - ^neutron/services/logapi/drivers/ovn/.*$
+      - ^neutron/services/portforwarding/drivers/ovn/.*$
+      - ^neutron/services/qos/drivers/linuxbridge/.*$
+      - ^neutron/services/qos/drivers/ovn/.*$
+      - ^neutron/services/trunk/drivers/linuxbridge/.*$
+      - ^neutron/services/trunk/drivers/ovn/.*$
+      - ^neutron/cmd/ovn/.*$
+      - ^neutron/common/ovn/.*$
+      - ^roles/.*functional.*$
+      - ^playbooks/.*functional.*$
+      - ^vagrant/.*$
+      - ^zuul.d/(?!(project)).*\.yaml
+    vars:
+      tox_envlist: integrated-network
+      devstack_localrc:
+        MYSQL_GATHER_PERFORMANCE: false
+        MYSQL_REDUCE_MEMORY: true
+        CIRROS_VERSION: 0.6.2
+        DEFAULT_IMAGE_NAME: cirros-0.6.2-x86_64-uec
+        DEFAULT_IMAGE_FILE_NAME: cirros-0.6.2-x86_64-uec.tar.gz
+        Q_ML2_TENANT_NETWORK_TYPE: vxlan
+        Q_ML2_PLUGIN_MECHANISM_DRIVERS: openvswitch,linuxbridge
+        Q_AGENT: openvswitch
+      devstack_services:
+        br-ex-tcpdump: true
+        br-int-flows: true
+        # Nova services
+        # NOTE(slaweq): this node is going to be only control plane and
+        # networker node with "dvr_snat" L3 agent mode. Other nodes in that job
+        # are compute nodes with L3 agent in "dvr" mode
+        n-cpu: false
+        # Neutron services
+        q-agt: true
+        q-dhcp: true
+        q-l3: true
+        q-meta: true
+        q-metering: true
+        q-svc: true
+        # OVN services
+        ovn-controller: false
+        ovn-northd: false
+        ovs-vswitchd: false
+        ovsdb-server: false
+        q-ovn-metadata-agent: false
+        # Cinder services
+        c-api: false
+        c-bak: false
+        c-sch: false
+        c-vol: false
+        cinder: false
+        # Swift services
+        s-account: false
+        s-container: false
+        s-object: false
+        s-proxy: false
+      devstack_plugins:
+        neutron: https://opendev.org/openstack/neutron.git
+      devstack_local_conf:
+        post-config:
+          $NEUTRON_CONF:
+            DEFAULT:
+              router_distributed: True
+              l3_ha: True
+          "/$NEUTRON_CORE_PLUGIN_CONF":
+            ml2:
+              mechanism_drivers: openvswitch,l2population
+            agent:
+              enable_distributed_routing: True
+              l2_population: True
+              tunnel_types: vxlan
+              arp_responder: True
+            ovs:
+              tunnel_bridge: br-tun
+              bridge_mappings: public:br-ex
+          $NEUTRON_L3_CONF:
+            DEFAULT:
+              agent_mode: dvr_snat
+            agent:
+              availability_zone: nova
+              debug_iptables_rules: True
+          $NEUTRON_DHCP_CONF:
+            agent:
+              availability_zone: nova
+    group-vars:
+      subnode:
+        devstack_plugins:
+          neutron: https://opendev.org/openstack/neutron.git
+        devstack_localrc:
+          Q_ML2_TENANT_NETWORK_TYPE: vxlan
+          Q_ML2_PLUGIN_MECHANISM_DRIVERS: openvswitch,linuxbridge
+          Q_AGENT: openvswitch
+        devstack_services:
+          q-agt: true
+          q-l3: true
+          q-meta: true
+          br-ex-tcpdump: true
+          br-int-flows: true
+          # OVN services
+          ovn-controller: false
+          ovs-vswitchd: false
+          ovsdb-server: false
+          q-ovn-metadata-agent: false
+          # Cinder services
+          c-api: false
+          c-bak: false
+          c-sch: false
+          c-vol: false
+          cinder: false
+          # Swift services
+          s-account: false
+          s-container: false
+          s-object: false
+          s-proxy: false
+        devstack_local_conf:
+          post-config:
+            $NEUTRON_CONF:
+              DEFAULT:
+                router_distributed: True
+            "/$NEUTRON_CORE_PLUGIN_CONF":
+              agent:
+                enable_distributed_routing: True
+                l2_population: True
+                tunnel_types: vxlan
+                arp_responder: True
+              ovs:
+                tunnel_bridge: br-tun
+                bridge_mappings: public:br-ex
+                resource_provider_bandwidths: br-ex:1000000:1000000
+            $NEUTRON_L3_CONF:
+              DEFAULT:
+                agent_mode: dvr
+              agent:
+                availability_zone: nova
+                debug_iptables_rules: True
+
+- job:
+    name: neutron-ovs-tempest-multinode-full
+    parent: tempest-multinode-full-py3
+    timeout: 10800
+    irrelevant-files: *openvswitch-irrelevant-files
+    vars:
+      tox_envlist: integrated-network
+      devstack_localrc:
+        MYSQL_GATHER_PERFORMANCE: false
+        MYSQL_REDUCE_MEMORY: true
+        CIRROS_VERSION: 0.6.2
+        DEFAULT_IMAGE_NAME: cirros-0.6.2-x86_64-uec
+        DEFAULT_IMAGE_FILE_NAME: cirros-0.6.2-x86_64-uec.tar.gz
+        Q_ML2_TENANT_NETWORK_TYPE: vxlan
+        Q_ML2_PLUGIN_MECHANISM_DRIVERS: openvswitch
+        Q_AGENT: openvswitch
+      devstack_plugins:
+        neutron: https://opendev.org/openstack/neutron.git
+      devstack_services:
+        br-ex-tcpdump: true
+        br-int-flows: true
+        # Neutron services
+        q-agt: true
+        q-dhcp: true
+        q-l3: true
+        q-meta: true
+        q-metering: true
+        q-svc: true
+        neutron-placement: true
+        neutron-qos: true
+        # OVN services
+        ovn-controller: false
+        ovn-northd: false
+        ovs-vswitchd: false
+        ovsdb-server: false
+        q-ovn-metadata-agent: false
+        # Cinder services
+        c-api: false
+        c-bak: false
+        c-sch: false
+        c-vol: false
+        cinder: false
+        # Swift services
+        s-account: false
+        s-container: false
+        s-object: false
+        s-proxy: false
+      devstack_local_conf:
+        post-config:
+          $NEUTRON_L3_CONF:
+            agent:
+              debug_iptables_rules: True
+          "/$NEUTRON_CORE_PLUGIN_CONF":
+            ovs:
+              bridge_mappings: public:br-ex
+              resource_provider_bandwidths: br-ex:1000000:1000000
+              resource_provider_packet_processing_without_direction: :100
+        test-config:
+          $TEMPEST_CONFIG:
+            network-feature-enabled:
+              qos_placement_physnet: public
+              qos_min_bw_and_pps: True
+    group-vars:
+      subnode:
+        devstack_localrc:
+          Q_ML2_TENANT_NETWORK_TYPE: vxlan
+          Q_ML2_PLUGIN_MECHANISM_DRIVERS: openvswitch,linuxbridge
+          Q_AGENT: openvswitch
+        devstack_services:
+          q-agt: true
+          # OVN services
+          ovn-controller: false
+          ovs-vswitchd: false
+          ovsdb-server: false
+          q-ovn-metadata-agent: false
+          # Cinder services
+          c-bak: false
+          c-vol: false
+        devstack_local_conf:
+          post-config:
+            $NEUTRON_L3_CONF:
+              agent:
+                debug_iptables_rules: True
+            "/$NEUTRON_CORE_PLUGIN_CONF":
+              ovs:
+                bridge_mappings: public:br-ex
+                resource_provider_bandwidths: br-ex:1000000:1000000
+                resource_provider_packet_processing_without_direction: :100
+
+- job:
+    name: neutron-ovs-tempest-slow
+    parent: tempest-slow-py3
+    timeout: 10800
+    irrelevant-files: *openvswitch-irrelevant-files
+    vars:
+      devstack_plugins:
+        neutron: https://opendev.org/openstack/neutron.git
+      devstack_localrc:
+        MYSQL_GATHER_PERFORMANCE: false
+        MYSQL_REDUCE_MEMORY: true
+        CIRROS_VERSION: 0.6.2
+        DEFAULT_IMAGE_NAME: cirros-0.6.2-x86_64-uec
+        DEFAULT_IMAGE_FILE_NAME: cirros-0.6.2-x86_64-uec.tar.gz
+        Q_ML2_TENANT_NETWORK_TYPE: vxlan
+        Q_ML2_PLUGIN_MECHANISM_DRIVERS: openvswitch
+        Q_AGENT: openvswitch
+      devstack_services:
+        br-ex-tcpdump: true
+        br-int-flows: true
+        # Neutron services
+        q-agt: true
+        q-dhcp: true
+        q-l3: true
+        q-meta: true
+        q-metering: true
+        q-svc: true
+        # OVN services
+        ovn-controller: false
+        ovn-northd: false
+        ovs-vswitchd: false
+        ovsdb-server: false
+        q-ovn-metadata-agent: false
+        # Cinder services
+        c-api: false
+        c-bak: false
+        c-sch: false
+        c-vol: false
+        cinder: false
+        # Swift services
+        s-account: false
+        s-container: false
+        s-object: false
+        s-proxy: false
+      devstack_local_conf:
+        post-config:
+          $NEUTRON_L3_CONF:
+            agent:
+              debug_iptables_rules: True
+        test-config:
+          $TEMPEST_CONFIG:
+            scenario:
+              dhcp_client: dhcpcd
+    group-vars:
+      subnode:
+        devstack_localrc:
+          Q_ML2_TENANT_NETWORK_TYPE: vxlan
+          Q_ML2_PLUGIN_MECHANISM_DRIVERS: openvswitch,linuxbridge
+          Q_AGENT: openvswitch
+        devstack_services:
+          q-agt: true
+          # OVN services
+          ovn-controller: false
+          ovs-vswitchd: false
+          ovsdb-server: false
+          q-ovn-metadata-agent: false
+          # Cinder services
+          c-bak: false
+          c-vol: false
+        devstack_local_conf:
+          post-config:
+            $NEUTRON_L3_CONF:
+              agent:
+                debug_iptables_rules: True
+
+- job:
+    name: neutron-ovn-multinode-base
+    description: Base multinode job for devstack/tempest to test Neutron with ovn driver.
+    abstract: true
+    parent: tempest-multinode-full-py3
+    timeout: 10800
+    required-projects:
+      - openstack/neutron
+      - openstack/neutron-tempest-plugin
+      - openstack/tempest
+    irrelevant-files: &ovn-irrelevant-files
+      - ^\.pylintrc$
+      - ^test-requirements.txt$
+      - ^releasenotes/.*$
+      - ^doc/.*$
+      - ^setup.cfg$
+      - ^.*\.conf\.sample$
+      - ^.*\.rst$
+      - ^neutron/locale/.*$
+      - ^neutron/tests/.*$
+      - ^tools/.*$
+      - ^tox.ini$
+      - ^plugin.spec$
+      - ^tools/ovn_migration/.*$
+      - ^neutron/agent/dhcp/.*$
+      - ^neutron/agent/l2/.*$
+      - ^neutron/agent/l3/.*$
+      - ^neutron/agent/metadata/.*$
+      - ^neutron/agent/windows/.*$
+      - ^neutron/agent/dhcp_agent.py
+      - ^neutron/agent/l3_agent.py
+      - ^neutron/agent/metadata_agent.py
+      - ^neutron/agent/resource_cache.py
+      - ^neutron/agent/rpc.py
+      - ^neutron/agent/securitygroup_rpc.py
+      - ^neutron/plugins/ml2/drivers/linuxbridge/.*$
+      - ^neutron/plugins/ml2/drivers/openvswitch/.*$
+      - ^neutron/plugins/ml2/drivers/macvtap/.*$
+      - ^neutron/plugins/ml2/drivers/mech_sriov/.*$
+      - ^neutron/services/qos/drivers/linuxbridge/.*$
+      - ^neutron/services/qos/drivers/openvswitch/.*$
+      - ^neutron/services/trunk/drivers/linuxbridge/.*$
+      - ^neutron/services/trunk/drivers/openvswitch/.*$
+      - ^neutron/scheduler/.*$
+      - ^roles/.*functional.*$
+      - ^playbooks/.*functional.*$
+      - ^zuul.d/(?!(project)).*\.yaml
+    roles:
+      - zuul: zuul/zuul-jobs
+      - zuul: openstack/neutron-tempest-plugin
+    pre-run: playbooks/prepare-ovn-multinode.yaml
+    vars:
+      devstack_local_conf:
+        test-config:
+          $TEMPEST_CONFIG:
+            neutron_plugin_options:
+              is_igmp_snooping_enabled: True
+            scenario:
+              dhcp_client: dhcpcd
+        post-config:
+          "/$NEUTRON_CORE_PLUGIN_CONF":
+            ovn:
+              enable_distributed_floating_ip: True
+      devstack_localrc:
+        MYSQL_GATHER_PERFORMANCE: false
+        MYSQL_REDUCE_MEMORY: true
+        CIRROS_VERSION: 0.6.2
+        DEFAULT_IMAGE_NAME: cirros-0.6.2-x86_64-uec
+        DEFAULT_IMAGE_FILE_NAME: cirros-0.6.2-x86_64-uec.tar.gz
+        Q_AGENT: ovn
+        ML2_L3_PLUGIN: ovn-router,trunk
+        Q_ML2_PLUGIN_MECHANISM_DRIVERS: ovn,logger
+        Q_ML2_TENANT_NETWORK_TYPE: geneve
+        Q_USE_PROVIDERNET_FOR_PUBLIC: true
+        PHYSICAL_NETWORK: public
+        ENABLE_CHASSIS_AS_GW: true
+        OVN_L3_CREATE_PUBLIC_NETWORK: true
+        OVN_DBS_LOG_LEVEL: dbg
+        BUILD_TIMEOUT: 784
+        ENABLE_TLS: True
+        OVN_IGMP_SNOOPING_ENABLE: True
+      devstack_plugins:
+        neutron: https://opendev.org/openstack/neutron
+        neutron-tempest-plugin: https://opendev.org/openstack/neutron-tempest-plugin
+      zuul_copy_output:
+        '/var/log/ovn': 'logs'
+        '/var/log/openvswitch': 'logs'
+        '/var/lib/ovn': 'logs'
+      extensions_to_txt:
+        db: true
+      devstack_services:
+        etcd: false
+        br-ex-tcpdump: true
+        br-int-flows: true
+        q-ovn-metadata-agent: true
+        ovn-controller: true
+        ovn-northd: true
+        ovs-vswitchd: true
+        ovsdb-server: true
+        placement-api: true
+        q-svc: true
+        q-agt: false
+        q-dhcp: false
+        q-l3: false
+        q-meta: false
+        q-metering: false
+        q-dns: true
+        # Cinder services
+        c-api: false
+        c-bak: false
+        c-sch: false
+        c-vol: false
+        cinder: false
+        # When running python3 Swift should be disabled for now
+        s-account: false
+        s-container: false
+        s-object: false
+        s-proxy: false
+        tls-proxy: true
+        q-qos: true
+        neutron-segments: True
+        q-port-forwarding: true
+        dstat: true
+    group-vars:
+      subnode:
+        devstack_services:
+          br-ex-tcpdump: true
+          br-int-flows: true
+          ovn-controller: true
+          ovn-northd: false
+          ovs-vswitchd: true
+          ovsdb-server: true
+          # NOTE(slaweq): it's just to check if this will force devstack to
+          # configure neutron and ML2 plugin on subnodes
+          q-fake: true
+          q-svc: false
+          q-agt: false
+          q-dhcp: false
+          q-l3: false
+          q-meta: false
+          q-metering: false
+          q-ovn-metadata-agent: true
+          tls-proxy: true
+          dstat: true
+          # Cinder services
+          c-bak: false
+          c-vol: false
+        devstack_localrc:
+          Q_AGENT: ovn
+          Q_ML2_PLUGIN_MECHANISM_DRIVERS: ovn,logger
+          Q_ML2_TENANT_NETWORK_TYPE: geneve
+          Q_USE_PROVIDERNET_FOR_PUBLIC: true
+          PHYSICAL_NETWORK: public
+          ENABLE_CHASSIS_AS_GW: false
+          OVN_DBS_LOG_LEVEL: dbg
+          USE_PYTHON3: True
+          ENABLE_TLS: True
+
+- job:
+    name: neutron-ovn-tempest-slow
+    parent: neutron-ovn-multinode-base
+    vars:
+      tox_envlist: slow-serial
+      tempest_test_regex: ""

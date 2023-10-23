@@ -1,0 +1,31 @@
+# This file contains runtime (non-python) dependencies
+# More info at: http://docs.openstack.org/infra/bindep/readme.html
+
+python3-devel [platform:rpm]
+
+# tools/misc-sanity-checks.sh validates .po[t] files
+gettext [test]
+
+# cffi (required by oslo.privsep) and PyNaCL (required by paramiko)
+libffi-dev [platform:dpkg]
+libffi-devel [platform:rpm]
+
+# MySQL and PostgreSQL databases since some jobs are set up in
+# OpenStack infra that need these like
+# periodic-neutron-py35-with-neutron-lib-master.
+libmariadb-dev-compat [platform:debian]
+libmysqlclient-dev [platform:ubuntu]
+mariadb [platform:rpm test]
+mariadb-devel [platform:rpm test]
+mariadb-server [platform:rpm platform:redhat platform:debian test]
+mysql-client [platform:dpkg !platform:debian test]
+mysql-server [platform:dpkg !platform:debian test]
+postgresql [test]
+postgresql-client [platform:dpkg test]
+postgresql-devel [platform:rpm test]
+postgresql-server [platform:rpm test]
+
+haproxy
+keepalived
+
+iproute-tc [platform:rpm]

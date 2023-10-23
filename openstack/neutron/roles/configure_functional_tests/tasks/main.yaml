@@ -1,0 +1,52 @@
+- name: Set optional env vars
+  set_fact:
+    override_env:
+      OVN_BRANCH: "{{ OVN_BRANCH | default(omit) }}"
+      OVS_BRANCH: "{{ OVS_BRANCH | default(omit) }}"
+
+- shell:
+    cmd: |
+        set -e
+        set -x
+        GATE_STACK_USER={{ ansible_user }}
+        IS_GATE=True
+
+        BASE_DIR={{ base_dir }}
+        GATE_DEST={{ gate_dest_dir }}
+        PROJECT_NAME={{ project_name }}
+        NEUTRON_DIR={{ neutron_dir }}
+        DEVSTACK_PATH={{ devstack_dir }}
+        TOP_DIR={{ devstack_dir }}
+        VENV={{ tests_venv }}
+        STACK_USER=stack
+        Q_BUILD_OVS_FROM_GIT={{ Q_BUILD_OVS_FROM_GIT }}
+        MEMORY_TRACKER={{ MEMORY_TRACKER }}
+        INSTALL_OVN={{ INSTALL_OVN }}
+        # This is DB USER used in e.g. pgsql db
+        DATABASE_USER=openstack_citest
+        MYSQL_GATHER_PERFORMANCE={{ MYSQL_GATHER_PERFORMANCE | default(true) }}
+
+        source $NEUTRON_DIR/tools/configure_for_func_testing.sh
+        if is_fedora; then
+            # NOTE(slqweq) Running functional job e.g. on Centos requires to
+            # have repo with rabbitmq-server and some other packages available
+            OPENSTACK_RELEASE=victoria
+            # For CentOS 9-Stream need to setup yoga repos
+            if [[ $os_VENDOR == "CentOSStream" && $os_RELEASE -gt 8 ]]; then
+                OPENSTACK_RELEASE=yoga
+            fi
+            install_package centos-release-openstack-${OPENSTACK_RELEASE}
+            install_package iproute-tc haproxy keepalived
+
+            # NOTE(slaweq) On Fedora/CentOS systems make sure that SELinux is
+            # not in enforcing mode
+            sudo setenforce 0
+            if [[ $os_VENDOR == "CentOSStream" && $os_RELEASE -eq 8 ]]; then
+                install_package python3.8 python38-devel
+            fi
+        fi
+
+        configure_host_for_func_testing
+
+    executable: /bin/bash
+  environment: "{{ override_env | default({})}}"

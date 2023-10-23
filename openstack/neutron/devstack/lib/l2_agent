@@ -1,0 +1,3 @@
+function configure_l2_agent {
+    iniset /$NEUTRON_CORE_PLUGIN_CONF agent extensions "$L2_AGENT_EXTENSIONS"
+}

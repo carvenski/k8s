@@ -1,0 +1,115 @@
+- project-template:
+    name: neutron-tox-override-jobs
+    check:
+      jobs:
+        - openstack-tox-py38:  # from openstack-python3-jobs template
+            timeout: 3600
+            irrelevant-files:  &irrelevant-files
+              - ^\.pylintrc$
+              - ^.*\.conf\.sample$
+              - ^.*\.rst$
+              - ^doc/.*$
+              - ^neutron/locale/.*$
+              - ^neutron/tests/fullstack/.*$
+              - ^neutron/tests/functional/.*$
+              - ^releasenotes/.*$
+              - ^setup.cfg$
+              - ^plugin.spec$
+              - ^tools/ovn_migration/.*$
+              - ^tools/.*$
+              - ^vagrant/.*$
+              - ^devstack/.*$
+              - ^playbooks/.*$
+              - ^roles/.*$
+              - ^rally-jobs/.*$
+              - ^zuul.d/(?!(job-templates)).*\.yaml
+        - openstack-tox-py39: # from openstack-python3-jobs template
+            timeout: 3600
+            irrelevant-files:  *irrelevant-files
+        - openstack-tox-py310: # from openstack-python3-jobs template
+            timeout: 3600
+            irrelevant-files:  *irrelevant-files
+        - openstack-tox-py311: # from openstack-python3-jobs template
+            timeout: 3600
+            irrelevant-files:  *irrelevant-files
+        - openstack-tox-cover:  # from openstack-cover-jobs template
+            timeout: 4800
+            irrelevant-files:  *irrelevant-files
+    check-arm64:
+      jobs:
+        - openstack-tox-py38-arm64: # from openstack-python3-jobs-arm64 template
+            timeout: 4800
+            irrelevant-files:  *irrelevant-files
+        - openstack-tox-py39-arm64: # from openstack-python3-jobs-arm64 template
+            timeout: 4800
+            irrelevant-files:  *irrelevant-files
+        - openstack-tox-py310-arm64: # from openstack-python3-jobs-arm64 template
+            timeout: 4800
+            irrelevant-files:  *irrelevant-files
+        - openstack-tox-py311-arm64: # from openstack-python3-jobs-arm64 template
+            timeout: 4800
+            irrelevant-files:  *irrelevant-files
+    gate:
+      jobs:
+        - openstack-tox-py38:  # from openstack-python3-jobs template
+            timeout: 3600
+            irrelevant-files:  *irrelevant-files
+        - openstack-tox-py39:  # from openstack-python3-jobs template
+            timeout: 3600
+            irrelevant-files:  *irrelevant-files
+        - openstack-tox-py310: # from openstack-python3-jobs template
+            timeout: 3600
+            irrelevant-files:  *irrelevant-files
+
+- project-template:
+    name: neutron-experimental-jobs
+    experimental:
+      jobs:
+        - neutron-ovn-grenade-multinode
+        - neutron-ovn-tempest-with-uwsgi-loki
+        # Jobs added to the periodic queue by templates defined in
+        # https://opendev.org/openstack/openstack-zuul-jobs/src/branch/master/zuul.d/project-templates.yaml
+
+- project-template:
+    name: neutron-periodic-jobs
+    periodic:
+      jobs: &neutron-periodic-jobs
+        - neutron-functional
+        - neutron-functional-with-uwsgi-fips
+        - neutron-fullstack
+        - neutron-fullstack-with-uwsgi-fips
+        - neutron-ovs-tempest-slow
+        - neutron-ovn-tempest-slow
+        - neutron-ovn-tempest-postgres-full
+        - neutron-ovn-tempest-mariadb-full
+        - neutron-ovs-tempest-fips
+        - neutron-ovn-tempest-ovs-release-fips
+        - devstack-tobiko-neutron:
+            voting: true
+        - ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-tinyipa
+        - openstacksdk-functional-devstack-networking
+        - neutron-linuxbridge-tempest-plugin-scenario-nftables
+        - neutron-ovs-tempest-plugin-scenario-iptables_hybrid-nftables
+        - devstack-enforce-scope
+        - neutron-tempest-plugin-linuxbridge
+    experimental:
+      jobs: *neutron-periodic-jobs
+
+- project-template:
+    name: neutron-skip-level-jobs
+    # NOTE(ralonsoh): during Bobcat (non SLURP release), these
+    # jobs are not executed in the "check" queue.
+    #check:
+    #  jobs:
+    #    - neutron-ovs-grenade-multinode-skip-level:
+    #        voting: false
+    #    - neutron-ovn-grenade-multinode-skip-level:
+    #        voting: false
+    periodic:
+      jobs:
+        - neutron-ovs-grenade-multinode-skip-level
+        - neutron-ovn-grenade-multinode-skip-level
+    experimental:
+      jobs:
+        - neutron-ovs-grenade-multinode-skip-level
+        - neutron-ovn-grenade-multinode-skip-level

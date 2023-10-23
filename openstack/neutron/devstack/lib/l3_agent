@@ -1,0 +1,3 @@
+function configure_l3_agent {
+    iniset $NEUTRON_L3_CONF agent extensions "$L3_AGENT_EXTENSIONS"
+}

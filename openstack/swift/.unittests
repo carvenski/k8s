@@ -1,0 +1,10 @@
+#!/bin/bash
+
+TOP_DIR=$(dirname $(realpath "$0"))
+
+cd $TOP_DIR/test/unit
+pytest --cov-report=html:"$TOP_DIR"/cover $@
+rvalue=$?
+rm -f .coverage
+cd -
+exit $rvalue
