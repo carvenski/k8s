@@ -1,0 +1,57 @@
+{
+    "environment":{
+        "foo": "bar"
+    },
+    "labels":{
+        "app": "hello"
+    },
+    "image": "ubuntu",
+    "command": [
+        "/bin/sh",
+        "-c",
+        "'echo hello'"
+    ],
+    "name": "test",
+    "cpu": 2,
+    "memory": 500,
+    "workdir": "/home/ubuntu",
+    "restart_policy":{
+        "Name": "no",
+        "MaximumRetryCount": 0
+    },
+    "interactive": false,
+    "tty": false,
+    "image_driver": "docker",
+    "security_groups": [
+        "default"
+    ],
+    "nets": [
+        {
+            "v4-fixed-ip": "",
+            "network": "",
+            "v6-fixed-ip": "",
+            "port": "890699a9-4690-4bd6-8b70-3a9c1be77ecb"
+        }
+    ],
+    "runtime": "runc",
+    "hostname": "testhost",
+    "auto_remove": false,
+    "auto_heal": false,
+    "availability_zone": "nova",
+    "hints": {
+        "foo": "bar"
+    },
+    "mounts": [
+        {
+            "source": "myvol",
+            "destination": "/data"
+        }
+    ],
+    "privileged": false,
+    "healthcheck": {
+        "cmd": "stat /etc/passwd || exit 1",
+        "interval": 3,
+        "retries": 2,
+        "timeout": 5
+    }
+}

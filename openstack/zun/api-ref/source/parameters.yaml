@@ -1,0 +1,1492 @@
+request_id:
+  type: UUID
+  in: header
+  required: true
+  description: |
+    A unique ID for tracking service request. The request ID associated
+    with the request by default appears in the service logs.
+capsule_ident:
+  description: |
+    The UUID or name of capsule in Zun.
+  in: path
+  required: true
+  type: string
+container_ident:
+  description: |
+    The UUID or name of container in Zun.
+  in: path
+  required: true
+  type: string
+host_ident:
+  description: |
+    The UUID or name of host in Zun.
+  in: path
+  required: true
+  type: string
+project_id:
+  description: |
+    The UUID of project in a multi-project cloud.
+  in: path
+  required: true
+  type: string
+quota_class_name:
+  description: |
+    The name of quota class
+  in: path
+  required: true
+  type: string
+request_ident:
+  description: |
+    The ID of the request.
+  in: path
+  required: true
+  type: string
+auto_remove_query:
+  description: |
+    Filters the response according to whether they are
+    auto-removed on exiting.
+  in: query
+  required: false
+  type: boolean
+destination_path:
+  description: |
+    The destination path in a container when putting archive to a container.
+  in: query
+  required: true
+  type: string
+exec_command:
+  description: |
+    The command to execute in a container.
+  in: query
+  required: true
+  type: string
+exec_interactive:
+  description: |
+    Keep STDIN open even if not attached, allocate a pseudo-TTY.
+  in: query
+  required: false
+  type: boolean
+exec_resize_id:
+  description: |
+    The ID of the exec instance.
+  in: query
+  required: true
+  type: string
+exec_run:
+  description: |
+    Whether to run the command or not. If this parameter is set to true,
+    Zun will run the command right away. If this parameter is set to false,
+    Zun won't run the command but return the necessary information (i.e. the
+    URL and execution id) for users to trigger the execution of the command.
+  in: query
+  required: false
+  type: boolean
+fixed_ip-query:
+  description: |
+    Fixed IP addresses. If you request a specific fixed IP address without
+    a ``network``, the request returns a Bad Request (400) response code.
+  in: query
+  required: false
+  type: string
+force:
+  description: |
+    Specify to delete container forcefully.
+  in: query
+  required: true
+  type: string
+height:
+  description: |
+    The tty height of a container.
+  in: query
+  required: true
+  type: string
+host_query:
+  description: |
+    Filters the response by a host name, as a string.
+  in: query
+  required: false
+  type: string
+image_query:
+  description: |
+    Filters the response by image.
+  in: query
+  required: false
+  type: string
+memory_query:
+  description: |
+    Filters the response by memory size in Mib.
+  in: query
+  required: false
+  type: integer
+name_query:
+  description: |
+    Filters the response by name.
+  in: query
+  required: false
+  type: string
+network:
+  description: |
+    The ID or name of the network to be detached from the container.
+  in: query
+  required: true
+  type: string
+network-query:
+  description: |
+    The ID or name of the network to be attached to the container.
+  in: query
+  required: false
+  type: string
+new_name:
+  description: |
+    The new name for the container.
+  in: query
+  required: true
+  type: string
+port-query:
+  description: |
+    The ID or name of the port for which you want to bind to the container.
+    The ``network`` and ``port`` parameters are mutually exclusive.
+    If you do not specify the ``port`` parameter, Zun will allocate a port
+    and bind the port to the container.
+  in: query
+  required: false
+  type: string
+project_id_query:
+  description: |
+    Filters the response by the ID of the project.
+  in: query
+  required: false
+  type: string
+ps_args:
+  description: |
+    The arguments of ps command.
+  in: query
+  required: false
+  type: string
+repository:
+  description: |
+    The reposiroty of the container image.
+  in: query
+  required: true
+  type: string
+run:
+  description: |
+    Set false if enabled interactive.
+  in: query
+  required: false
+  type: boolean
+security_group_query:
+  description: |
+    Security groups to be added to the container.
+  in: query
+  required: true
+  type: string
+signal:
+  description: |
+    The signal to kill a container.
+  in: query
+  required: false
+  type: string
+since:
+  description: |
+    Show logs since a given datetime or integer epoch (in seconds).
+  in: query
+  required: false
+  type: string
+source_path:
+  description: |
+    The file path in a container when getting archive from a container.
+  in: query
+  required: true
+  type: string
+status_query:
+  description: |
+    Filters the response by the current state of the container.
+  in: query
+  required: false
+  type: string
+stderr:
+  description: |
+    Get standard error if True.
+  in: query
+  required: false
+  type: boolean
+stdout:
+  description: |
+    Get standard output if True.
+  in: query
+  required: false
+  type: boolean
+stop:
+  description: |
+    Whether or not stop a container firstly before deleting it.
+  in: query
+  required: false
+  type: string
+tag:
+  description: |
+    The tag of the container image.
+  in: query
+  required: true
+  type: string
+tail:
+  description: |
+    Number of lines to show from the end of the logs, default is get all logs.
+  in: query
+  required: false
+  type: string
+task_state_query:
+  description: |
+    Filters the response by task state.
+  in: query
+  required: false
+  type: string
+timeout:
+  description: |
+    Seconds to wait before operating on container.
+  in: query
+  required: true
+  type: string
+timestamps:
+  description: |
+    Whether to show timestamps in the logs of container.
+  in: query
+  required: false
+  type: boolean
+usages:
+  description: |
+    Whether to show in_use in the quotas
+  in: query
+  required: false
+  type: boolean
+user_id_query:
+  description: |
+    Filters the response by user ID.
+  in: query
+  required: false
+  type: string
+width:
+  description: |
+    The tty width of a container.
+  in: query
+  required: true
+  type: string
+action:
+  description: |
+    The name of the action.
+  in: body
+  required: true
+  type: string
+addresses:
+  type: string
+  description: |
+    IP address of the container. This includes both ipv4 and/or ipv6 addresses.
+  in: body
+  required: true
+auto_heal:
+  description: |
+    The flag of healing non-existent container in docker.
+  in: body
+  required: true
+  type: boolean
+auto_heal-request:
+  description: |
+    The flag of healing non-existent container in docker.
+  in: body
+  required: false
+  type: boolean
+auto_remove:
+  description: |
+    Enable auto-removal of the container on daemon side
+    when the container's process exits.
+  in: body
+  required: true
+  type: boolean
+auto_remove-request:
+  description: |
+    enable auto-removal of the container on daemon side
+    when the container's process exits.
+  in: body
+  required: false
+  type: boolean
+availability_zone:
+  in: body
+  type: string
+  required: true
+  description: |
+    The availability zone of the Zun service.
+binary:
+  in: body
+  type: string
+  required: true
+  description: |
+    The name of the binary form of the Zun service.
+capsule-addresses:
+  type: string
+  description: |
+    IP address of the capsule. This includes both ipv4 and/or ipv6 addresses.
+  in: body
+  required: true
+capsule-annotations:
+  description: |
+    The annotations of the capsule.
+    Annotations is an unstructured key value map stored with a resource
+    that may be set by external tools to store and retrieve arbitrary metadata.
+  in: body
+  required: true
+  type: object
+capsule-annotations-request:
+  description: |
+    The annotations added to the capsule.
+    Annotations is an unstructured key value map stored with a resource
+    that may be set by external tools to store and retrieve arbitrary metadata.
+  in: body
+  required: false
+  type: object
+capsule-args-request:
+  description: |
+    The arguments to the command.
+  in: body
+  required: false
+  type: array
+capsule-cinder-autoRemove:
+  description: |
+    Whether to remove the volume when the capsule is deleted.
+  in: body
+  required: false
+  type: string
+capsule-cinder-request:
+  description: |
+    The Cinder volume configuration.
+    There are two options to configure the volume: use an existing volume
+    or dynamically create one.
+    To specify an existing volume, set the ``volumeID`` key with
+    the UUID of the Cinder volume as value. For example:
+
+      .. code-block:: javascript
+
+        "cinder": {
+            "volumeID": "9e5b5387-ed3b-4b9d-ab1e-0ce1e9dd86a1",
+            "autoRemove": false
+        }
+
+    To create a volume, set the ``size`` key with its size as value.
+    For example:
+
+      .. code-block:: javascript
+
+        "cinder": {
+            "size": 1,
+            "autoRemove": true
+        }
+
+    The ``autoRemove`` key is optional for deciding the cleanup of the
+    volume.
+  in: body
+  required: true
+  type: object
+capsule-cinder-size:
+  description: |
+    The size of the Cinder volume.
+  in: body
+  required: false
+  type: string
+capsule-cinder-volumeID:
+  description: |
+    The UUID of the Cinder volume.
+  in: body
+  required: false
+  type: string
+capsule-command-request:
+  description: |
+    The command of the container.
+  in: body
+  required: false
+  type: array
+capsule-container-name-request:
+  description: |
+    The name of the container.
+  in: body
+  required: false
+  type: string
+capsule-containers-create:
+  description: |
+    List of :ref:`containers<create-capsule-container-response>` belonging
+    to the capsule. There must be at least one container in a capsule.
+  in: body
+  required: true
+  type: object
+capsule-containers-list:
+  description: |
+    List of :ref:`containers<list-capsule-container-response>` belonging
+    to the capsule. There must be at least one container in a capsule.
+  in: body
+  required: true
+  type: object
+capsule-containers-request:
+  description: |
+    A list of :ref:`containers <create-capsule-container>` objects.
+  in: body
+  required: true
+  type: array
+capsule-containers-show:
+  description: |
+    List of :ref:`containers<show-capsule-container-response>` belonging
+    to the capsule. There must be at least one container in a capsule.
+  in: body
+  required: true
+  type: object
+capsule-cpu:
+  description: |
+    The number of virtual cpus of the capsule.
+  in: body
+  required: true
+  type: float
+capsule-initContainers-request:
+  description: |
+    A list of :ref:`init containers <create-capsule-container>` objects.
+  in: body
+  required: false
+  type: array
+capsule-kind-request:
+  description: |
+    A string value representing the type of this object.
+    Its value is ``capsule``.
+  in: body
+  required: true
+  type: string
+capsule-labels:
+  description: |
+    The labels of the capsule.
+  in: body
+  required: true
+  type: object
+capsule-labels-request:
+  description: |
+    The labels added to the capsule.
+  in: body
+  required: false
+  type: object
+capsule-links:
+  description: |
+    A list of relative links.
+  in: body
+  required: true
+  type: string
+capsule-memory:
+  description: |
+    The capsule memory size in MiB.
+  in: body
+  required: true
+  type: string
+capsule-metadata-request:
+  description: |
+    Capsule metadata in key-value format.
+    Keys can be ``name``, ``labels`` and ``annotations``.
+    An example format would look as follows:
+
+      .. code-block:: javascript
+
+        "metadata": {
+            "labels": {"app": "web"},
+            "name": "demo",
+            "annotations": {"key1": "value1"}
+        }
+
+  in: body
+  required: false
+  type: object
+capsule-name:
+  description: |
+    The name of the capsule.
+  in: body
+  required: true
+  type: string
+capsule-name-request:
+  description: |
+    The name of the capsule.
+  in: body
+  required: false
+  type: string
+capsule-ports-containerPort:
+  description: |
+    The port to open in container.
+    Its value must be a number between ``1`` and ``65535``.
+  in: body
+  required: false
+  type: integer
+capsule-ports-protocol:
+  description: |
+    The protocol. Its value can be ``TCP`` or ``UDP``.
+    Default is ``TCP``.
+  in: body
+  required: false
+  type: string
+capsule-ports-request:
+  description: |
+    List of ports to expose from the container.
+    Each item is a dictionary must contain a ``containerPort`` key.
+    Optionally, it can contain a ``protocol`` key.
+    An example format would look as follows:
+
+      .. code-block:: javascript
+
+        "ports": [{
+            "protocol": "TCP",
+            "containerPort": 80
+        }]
+
+  in: body
+  required: false
+  type: array
+capsule-project_id:
+  description: |
+    The UUID of the project to which this capsule belongs.
+  in: body
+  required: true
+  type: string
+capsule-resources-cpu:
+  description: |
+    The number of virtual CPU.
+  in: body
+  required: false
+  type: float
+capsule-resources-memory:
+  description: |
+    The amount of memory in MiB.
+  in: body
+  required: false
+  type: integer
+capsule-resources-request:
+  description: |
+    Compute Resources required by this container.
+    Supported compute resources are ``cpu`` and ``memory``.
+    An example format would look as follows:
+
+      .. code-block:: javascript
+
+        "resources": {
+            "requests": {
+                "cpu": 0.1,
+                "memory": 128
+        }}
+
+  in: body
+  required: false
+  type: object
+capsule-restart_policy:
+  description: |
+    Restart policy for all containers within the capsule.
+  in: body
+  required: true
+  type: object
+capsule-restartPolicy-request:
+  description: |
+    Restart policy for all containers within the capsule.
+    Its value can be ``Always``, ``OnFailure``, or ``Never``.
+  in: body
+  required: false
+  type: string
+capsule-spec-request:
+  description: |
+    Specification of the desired behavior of the capsule.
+    See :ref:`create-capsule-spec`.
+  in: body
+  required: true
+  type: object
+capsule-status:
+  description: |
+    The current state of the capsule.
+  in: body
+  required: true
+  type: string
+capsule-status_reason:
+  description: |
+    The reason of capsule current status.
+  in: body
+  required: true
+  type: string
+capsule-template-request:
+  description: |
+    A template for capsule.
+  in: body
+  required: true
+  type: object
+capsule-user_id:
+  description: |
+    The user ID of the user who owns the capsule.
+  in: body
+  required: true
+  type: string
+capsule-uuid:
+  description: |
+    The UUID of the capsule.
+  in: body
+  required: true
+  type: string
+capsule-volume-name-request:
+  description: |
+    The name of the volume.
+  in: body
+  required: true
+  type: string
+capsule-volumeMounts-mountPath:
+  description: |
+    The path within the container at which the volume should be mounted.
+  in: body
+  required: false
+  type: string
+capsule-volumeMounts-name:
+  description: |
+    The name of the volume
+  in: body
+  required: false
+  type: string
+capsule-volumeMounts-request:
+  description: |
+    List of volumes to mount into the container's filesystem.
+    Each item must contain a ``name`` key and a ``mountPath`` key.
+    An example format would look as follows:
+
+      .. code-block:: javascript
+
+        "volumeMounts": [{
+            "mountPath": "/work-dir",
+            "name": "workdir"
+        }]
+
+  in: body
+  required: false
+  type: array
+capsule-volumes-request:
+  description: |
+    List of :ref:`volumes<create-capsule-volume>` that can be mounted by
+    containers in this capsule.
+  in: body
+  required: false
+  type: array
+command:
+  description: |
+    Send command to the container.
+  in: body
+  required: true
+  type: array
+command-request:
+  description: |
+    Send command to the container.
+  in: body
+  required: false
+  type: string
+container-project_id:
+  description: |
+    The UUID of the project to which this container belongs.
+  in: body
+  required: true
+  type: array
+container-request:
+  description: |
+    The number of containers
+  in: body
+  required: false
+  type: int
+container-response:
+  description: |
+    The object of detailed containers quota, including in_use,
+    limit of number of instances.
+  in: body
+  required: true
+  type: object
+container_action:
+  description: |
+    The container action object.
+  in: body
+  required: true
+  type: object
+container_action_events:
+  description: |
+    The events occurred in this action.
+  in: body
+  required: true
+  type: array
+container_actions:
+  description: |
+    List of the actions for the given container.
+  in: body
+  required: true
+  type: array
+container_availability_zone:
+  in: body
+  type: string
+  required: false
+  description: |
+    The availability zone from which to run the container. Typically,
+    an admin user will use availability zones to arrange container hosts into
+    logical groups. An availability zone provides a form of physical isolation
+    and redundancy from other availability zones. For instance, if some racks
+    in your data center are on a separate power source, you can put containers
+    in those racks in their own availability zone. By segregating resources
+    into availability zones, you can ensure that your application resources are
+    spread across disparate machines to achieve high availability in the event
+    of hardware or other failure. You can see the available availability zones
+    by calling the ``services`` API.
+container_list:
+  type: array
+  in: body
+  required: true
+  description: |
+    The list of all containers in Zun.
+container_uuid:
+  description: |
+    The UUID of the container.
+  in: body
+  required: true
+  type: string
+cpu:
+  description: |
+    The number of virtual cpus of the container.
+  in: body
+  required: true
+  type: float
+cpu-request:
+  description: |
+    The number of virtual cpus.
+  in: body
+  required: false
+  type: float
+cpu-response:
+  description: |
+    The object of detailed cpu set quota, including in_use,
+    limit of number of cpu set.
+  in: body
+  required: true
+  type: object
+cpu_policy:
+  description: |
+    The CPU policy of the container. Its value can be ``dedicated`` or
+    ``shared``.
+  in: body
+  required: true
+  type: string
+created_at:
+  description: |
+    The date and time when the resource was created.
+
+    The date and time stamp format is `ISO 8601
+    <https://en.wikipedia.org/wiki/ISO_8601>`_:
+
+    ::
+
+       CCYY-MM-DDThh:mm:ss±hh:mm
+
+    For example, ``2015-08-27T09:49:58-05:00``.
+
+    The ``±hh:mm`` value, if included, is the time zone as an offset
+    from UTC.
+  in: body
+  required: true
+  type: string
+data:
+  description: |
+    The content of the tar file which is got from a container or put to a container.
+  in: body
+  required: true
+  type: string
+disabled:
+  description: |
+     Whether or not this service is disabled or not.
+  in: body
+  required: true
+  type: boolean
+disabled_reason:
+  description: |
+    The disable reason of the service, ``null`` if the service is enabled or
+    disabled without reason provided.
+  in: body
+  required: true
+  type: string
+disk:
+  description: |
+    The container disk size in GiB.
+  in: body
+  required: true
+  type: integer
+disk-request:
+  description: |
+    The number of gigabytes of container disk
+  required: false
+  in: body
+  type: int
+disk-response:
+  description: |
+    The object of detailed disk quota, including in_use,
+    limit of disk.
+  required: true
+  in: body
+  type: object
+enable_cpu_pinning:
+  description: |
+    Indicate whether this host has cpu pinning enabled.
+  in: body
+  required: true
+  type: object
+entrypoint:
+  description: |
+    The entrypoint which overwrites the default ENTRYPOINT of the image.
+  in: body
+  required: true
+  type: array
+entrypoint-request:
+  description: |
+    The entrypoint which overwrites the default ENTRYPOINT of the image.
+  in: body
+  required: false
+  type: array
+environment:
+  description: |
+    The environment variables to set in the container.
+  in: body
+  required: true
+  type: object
+environment-request:
+  description: |
+    The environment variables to set in the container.
+  in: body
+  required: false
+  type: object
+event:
+  description: |
+    The name of the event.
+  in: body
+  required: true
+  type: string
+event_finish_time:
+  description: |
+    The date and time when the event was finished. The date and time
+    stamp format is `ISO 8601 <https://en.wikipedia.org/wiki/ISO_8601>`_
+
+    ::
+
+      CCYY-MM-DDThh:mm:ss±hh:mm
+
+    For example, ``2015-08-27T09:49:58-05:00``. The ``±hh:mm``
+    value, if included, is the time zone as an offset from UTC.  In
+    the previous example, the offset value is ``-05:00``.
+  in: body
+  required: true
+  type: string
+event_result:
+  description: |
+    The result of the event.
+  in: body
+  required: true
+  type: string
+event_start_time:
+  description: |
+    The date and time when the event was started. The date and time
+    stamp format is `ISO 8601 <https://en.wikipedia.org/wiki/ISO_8601>`_
+
+    ::
+
+      CCYY-MM-DDThh:mm:ss±hh:mm
+
+    For example, ``2015-08-27T09:49:58-05:00``. The ``±hh:mm``
+    value, if included, is the time zone as an offset from UTC.  In
+    the previous example, the offset value is ``-05:00``.
+  in: body
+  required: true
+  type: string
+event_traceback:
+  description: |
+    The traceback stack if error occurred in this event.
+  in: body
+  required: true
+  type: string
+exec_exit_code:
+  description: |
+    The exit code of the command executed in a container.
+  in: body
+  type: dict
+exec_id:
+  description: |
+    The ID of the exec instance.
+  in: body
+  type: dict
+exec_output:
+  description: |
+    The output of the command executed in a container.
+  in: body
+  type: dict
+exec_resize_output:
+  description: |
+    The output of exec_resize, including exec_id and websocket url.
+  in: body
+  type: array
+exec_url:
+  description: |
+    The URL to start an exec instance.
+  in: body
+  type: dict
+exposed_ports:
+  description: |
+    A list of dictionary data to specify how to expose container's ports.
+    If this parameter is specified, Zun will create a security group with
+    a set of rules to open the ports that should be exposed, and associate
+    the security group to the container. The value is in the form of
+    ``{"<port>/<protocol>: {}"}``, where the ``port`` is the container's
+    port and ``protocol`` is either ``tcp`` or ``udp``. If ``protocol``
+    is not provided, ``tcp`` will be used.
+  in: body
+  required: false
+  type: object
+fixed_ips:
+  description: |
+    A list of fixed IP addresses with subnet IDs and other detailed
+    information.
+  in: body
+  required: true
+  type: string
+forced_down:
+  description: |
+    Whether or not this service was forced down manually by an
+    administrator. This value is useful to know that some 3rd party has
+    verified the service should be marked down.
+  in: body
+  required: true
+  type: boolean
+healthcheck:
+  description: |
+    A dict of health check for the container. Specify a test command to
+    perform to check that the container is healthy. Four parameters are
+    supported:
+
+    * cmd: Command to run to check health.
+    * interval: Time between running the check in seconds.
+    * retries: Consecutive failures needed to report unhealthy.
+    * timeout: Maximum time to allow one check to run in seconds.
+  in: body
+  required: true
+  type: object
+healthcheck-request:
+  description: |
+    A dict of health check for the container. Specify a test command to
+    perform to check that the container is healthy. Four parameters are
+    supported:
+
+    * cmd: Command to run to check health.
+    * interval: Time between running the check in seconds.
+    * retries: Consecutive failures needed to report unhealthy.
+    * timeout: Maximum time to allow one check to run in seconds.
+  in: body
+  required: false
+  type: object
+hints:
+  description: |
+    The dictionary of data to send to the scheduler.
+  in: body
+  required: false
+  type: string
+host:
+  description: |
+    The host for the service.
+  in: body
+  required: true
+  type: string
+host-architecture:
+  description: |
+    The architecture of the host operating system.
+  in: body
+  required: true
+  type: string
+host-cpu_used:
+  description: |
+    The used cpus of the host.
+  in: body
+  required: true
+  type: string
+host-cpus:
+  description: |
+    The total cpus of the host.
+  in: body
+  required: true
+  type: string
+host-disk_total:
+  description: |
+    The total amount of disk of the host.
+  in: body
+  required: true
+  type: string
+host-disk_used:
+  description: |
+    The amount of used disk of the host.
+  in: body
+  required: true
+  type: string
+host-hostname:
+  description: |
+    The hostname.
+  in: body
+  required: true
+  type: string
+host-kernel_version:
+  description: |
+    The kernel version of the host.
+  in: body
+  required: true
+  type: string
+host-labels:
+  description: |
+    The labels of the local container engine (i.e. Docker daemon).
+  in: body
+  required: true
+  type: string
+host-mem_total:
+  description: |
+    The total amount of memory of the host.
+  in: body
+  required: true
+  type: string
+host-mem_used:
+  description: |
+    The amount of used memory of the host.
+  in: body
+  required: true
+  type: string
+host-os:
+  description: |
+    The name of host operating system.
+  in: body
+  required: true
+  type: string
+host-os_type:
+  description: |
+    The type of host operating system.
+  in: body
+  required: true
+  type: string
+host-total_containers:
+  description: |
+    The total number of containers in the host.
+  in: body
+  required: true
+  type: string
+host-uuid:
+  description: |
+    The UUID of the host.
+  in: body
+  required: true
+  type: string
+host_list:
+  description: |
+    The host information list, including hostname, uuid, links, labels,
+    cpus, mem_total and os.
+  in: body
+  required: true
+  type: array
+hostname:
+  description: |
+    The hostname of container.
+  in: body
+  required: true
+  type: string
+hostname-request:
+  description: |
+    The hostname of container.
+  in: body
+  required: false
+  type: string
+id_s:
+  description: |
+    The ID of the Zun service.
+  in: body
+  required: true
+  type: string
+image:
+  description: |
+    The name or ID of the image.
+  in: body
+  required: true
+  type: string
+image_driver:
+  description: |
+    The image driver to use to pull container image.
+  in: body
+  required: true
+  type: string
+image_driver-request:
+  description: |
+    The image driver to use to pull container image. Allowed values are
+    ``docker`` to pull the image from Docker Hub and ``glance`` to pull
+    the image from Glance.
+  in: body
+  required: false
+  type: string
+image_pull_policy:
+  description: |
+    The policy which determines if the image should be pulled prior to starting
+    the container. Allowed values are ``ifnotpresent`` that means pull the
+    image if it does not already exist on the node, ``always`` means always
+    pull the image from repository and ``never`` mean never pull the image.
+  in: body
+  required: true
+  type: string
+image_pull_policy-request:
+  description: |
+    The policy which determines if the image should be pulled prior to starting
+    the container. Allowed values are ``ifnotpresent`` that means pull the
+    image if it does not already exist on the node, ``always`` means always
+    pull the image from repository and ``never`` mean never pull the image.
+  in: body
+  required: false
+  type: string
+interactive:
+  description: |
+    Keep STDIN open even if not attached.
+  in: body
+  required: true
+  type: boolean
+interactive-request:
+  description: |
+    Keep STDIN open even if not attached.
+  in: body
+  required: false
+  type: boolean
+ip_address:
+  description: |
+    The IP address.
+  in: body
+  required: true
+  type: string
+labels:
+  description: |
+    A map of labels of the container.
+  in: body
+  required: true
+  type: object
+labels-request:
+  description: |
+    Adds a map of labels to a container.
+  in: body
+  required: false
+  type: object
+links:
+  description: |
+    A list of relative links. Includes the self and
+    bookmark links.
+  in: body
+  required: true
+  type: array
+memory:
+  description: |
+    The container memory size in MiB.
+  in: body
+  required: true
+  type: integer
+memory-request:
+  description: |
+    The container memory size in MiB.
+  in: body
+  required: false
+  type: integer
+memory-response:
+  description: |
+    The object of detailed memory quota, including in_use,
+    limit number of memory.
+  in: body
+  required: true
+  type: object
+message:
+  description: |
+    The error message about this action when error occurred.
+  in: body
+  required: true
+  type: string
+mounts:
+  description: |
+    A list of dictionary data to specify how volumes are mounted into the
+    container. The container will mount the volumes at create time.
+    Each item can have an ``type`` attribute that specifies the volume
+    type. The supported volume types are ``volume`` or ``bind``. If this
+    attribute is not specified, the default is ``volume``.
+    To provision a container with pre-existing Cinder volumes bind-mounted,
+    specify the UUID or name of the volume in the ``source`` attribute.
+    Alternatively, Cinder volumes can be dynamically created. In this case,
+    the size of the volume needs to be specified in the ``size`` attribute.
+    Another option is to mount a user-provided file into the container.
+    In this case, the ``type`` attribute should be 'bind' and
+    the content of the file is contained in the ``source`` attribute.
+    The volumes will be mounted into the file system of the container and
+    the path to mount the volume needs to be specified in the ``destination``
+    attribute.
+  in: body
+  type: object
+name:
+  description: |
+    The name of the container.
+  in: body
+  required: true
+  type: string
+name-request:
+  description: |
+    The name of the container.
+  in: body
+  required: false
+  type: string
+net_id:
+  description: |
+    The UUID of network.
+  in: body
+  required: true
+  type: string
+nets:
+  description: |
+    A list of networks for the container. When you do not specify the nets
+    parameter, the container attaches to the only network created for the
+    current tenant. To provision the container with a NIC for a network,
+    specify the UUID or name of the network in the ``network`` attribute.
+    To provision the container with a NIC for an already existing port,
+    specify the port id or name in the ``port`` attribute.
+
+    If multiple networks are defined, the order in which they appear in the
+    container will not necessarily reflect the order in which they are given
+    in the request. Users should therefore not depend on device order
+    to deduce any information about their network devices.
+  in: body
+  type: object
+port_id:
+  description: |
+    The UUID of port of a container.
+  in: body
+  required: true
+  type: string
+ports:
+  description: |
+    The ports exposed on the container.
+  in: body
+  required: true
+  type: string
+privileged:
+  description: |
+    Give extended privileges to the container.
+  in: body
+  required: true
+  type: boolean
+privileged-request:
+  description: |
+    Give extended privileges to the container.
+  in: body
+  required: false
+  type: boolean
+project_id_container_action:
+  description: |
+    The UUID of the project that this container belongs to.
+  in: body
+  required: ture
+  type: string
+ps_output:
+  description: |
+    The output of zun top.
+  in: body
+  required: true
+  type: dict
+registry_id:
+  description: |
+    The ID of the image registry used by the container.
+  in: body
+  required: true
+  type: string
+report_count:
+  description: |
+    The total number of report.
+  in: body
+  required: true
+  type: integer
+request_id_body:
+  description: |
+    The request id generated when execute the API of this action.
+  in: body
+  required: true
+  type: string
+requested_host:
+  description: |
+    The name of the host on which the container is to be created.
+    The API will return 400 if no host are found with the given host name.
+    By default, it can be specified by administrators only.
+  in: body
+  required: false
+  type: string
+restart_policy:
+  description: |
+    Restart policy to apply when a container exits. It must contain a
+    ``Name`` key and its allowed values are ``no``, ``on-failure``, ``always``,
+    ``unless-stopped``. Optionally, it can contain a ``MaximumRetryCount`` key
+    and its value is an integer.
+  in: body
+  required: true
+  type: object
+restart_policy-request:
+  description: |
+    Restart policy to apply when a container exits. It must contain a
+    ``Name`` key and its allowed values are ``no``, ``on-failure``, ``always``,
+    ``unless-stopped``. Optionally, it can contain a ``MaximumRetryCount`` key
+    and its value is an integer.
+  in: body
+  required: false
+  type: object
+runtime:
+  description: |
+    The container runtime tool to create container with. You can use
+    the default runtime that is `runc` or any other runtime configured
+    to use with Docker.
+  in: body
+  type: string
+security_groups:
+  description: |
+    Security groups to be added to the container.
+  in: body
+  required: true
+  type: string
+security_groups-request:
+  description: |
+    Security groups to be added to the container.
+  in: body
+  required: false
+  type: string
+service:
+  description: |
+    A Zun service.
+  in: body
+  required: true
+  type: dict
+services:
+  description: |
+    A list of Zun services.
+  in: body
+  required: true
+  type: array
+start_time:
+  description: |
+    The date and time when the action was started. The date and time
+    stamp format is `ISO 8601 <https://en.wikipedia.org/wiki/ISO_8601>`_
+
+    ::
+
+      CCYY-MM-DDThh:mm:ss±hh:mm
+
+    For example, ``2015-08-27T09:49:58-05:00``. The ``±hh:mm``
+    value, if included, is the time zone as an offset from UTC.  In
+    the previous example, the offset value is ``-05:00``.
+  in: body
+  required: true
+  type: string
+stat:
+  description: |
+    The stat information when doing get_archive.
+  in: body
+  required: true
+  type: string
+state:
+  description: |
+    The current state of Zun services.
+  in: body
+  required: true
+  type: string
+stats_info:
+  description: |
+    The stats information of a container,
+    including cpu, memory, blk io and net io.
+  in: body
+  required: true
+  type: dict
+status:
+  description: |
+    The current state of the container.
+  in: body
+  required: true
+  type: string
+status_detail:
+  description: |
+    The status detail of the container.
+  in: body
+  required: true
+  type: string
+status_reason:
+  description: |
+    The reason of container current status.
+  in: body
+  required: true
+  type: string
+subnet_id:
+  description: |
+    The UUID of subnet.
+  in: body
+  required: true
+  type: string
+task_state:
+  description: |
+    The current task of the container.
+  in: body
+  required: true
+  type: string
+tty:
+  description: |
+    Whether this container allocate a TTY for itself.
+  in: body
+  required: true
+  type: boolean
+tty-request:
+  description: |
+    Whether this container should allocate a TTY for itself.
+  in: body
+  required: false
+  type: boolean
+updated_at:
+  description: |
+    The date and time when the resource was updated.
+
+    The date and time stamp format is `ISO 8601
+    <https://en.wikipedia.org/wiki/ISO_8601>`_:
+
+    ::
+
+       CCYY-MM-DDThh:mm:ss±hh:mm
+
+    For example, ``2015-08-27T09:49:58-05:00``.
+
+    The ``±hh:mm`` value, if included, is the time zone as an offset
+    from UTC. In the previous example, the offset value is ``-05:00``.
+
+    If the ``updated_at`` date and time stamp is not set, its value is
+    ``null``.
+  in: body
+  required: true
+  type: string
+user_id:
+  description: |
+    The user ID of the user who owns the container.
+  in: body
+  required: true
+  type: string
+uuid:
+  description: |
+    UUID of the resource.
+  in: body
+  required: true
+  type: UUID
+version:
+  description: |
+    The version of the Internet Protocol.
+  in: body
+  required: true
+  type: string
+workdir:
+  description: |
+    The working directory for commands to run in.
+  in: body
+  required: true
+  type: string
+workdir-request:
+  description: |
+    The working directory for commands to run in.
+  in: body
+  required: false
+  type: string

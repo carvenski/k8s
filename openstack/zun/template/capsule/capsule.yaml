@@ -1,0 +1,71 @@
+# use "-" because that the fields have many items
+capsuleVersion: beta
+kind: capsule
+metadata:
+  name: capsule-example
+  labels:
+    app: web
+    app1: web1
+availabilityZone: nova
+spec:
+  restartPolicy: Always
+  containers:
+  - image: ubuntu
+    command:
+      - "/bin/bash"
+    imagePullPolicy: ifnotpresent
+    workDir: /root
+    ports:
+      - name: nginx-port
+        containerPort: 80
+        hostPort: 80
+        protocol: TCP
+    resources:
+      requests:
+        cpu: 1
+        memory: 1024
+    env:
+      ENV1: /usr/local/bin
+    volumeMounts:
+    - name: volume1
+      mountPath: /data1
+      readOnly: True
+  - image: centos
+    command:
+      - "echo"
+    args:
+      - "Hello"
+      - "World"
+    imagePullPolicy: ifnotpresent
+    workDir: /root
+    ports:
+      - name: nginx-port
+        containerPort: 80
+        hostPort: 80
+        protocol: TCP
+      - name: mysql-port
+        containerPort: 3306
+        hostPort: 3306
+        protocol: TCP
+    resources:
+      requests:
+        cpu: 1
+        memory: 1024
+    env:
+      ENV2: /usr/bin/
+    volumeMounts:
+    - name: volume2
+      mountPath: /data2
+    - name: volume3
+      mountPath: /data3
+  volumes:
+  - name: volume1
+    cinder:
+      size: 5
+      autoRemove: True
+  - name: volume2
+    cinder:
+      volumeID: 473e4a6a-99f2-4b42-88ce-5ab03a00b756
+  - name: volume3
+    cinder:
+      volumeID: f4246aa1-1c87-479c-a2ab-4dbaf0c3c7bb

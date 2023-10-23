@@ -1,0 +1,18 @@
+{
+    "services":[
+        {
+            "binary": "zun-compute",
+            "availability_zone": "nova",
+            "state": "up",
+            "created_at": "2017-02-01T03:25:07.000000",
+            "updated_at": "2017-02-01T06:13:07.000000",
+            "report_count": 166,
+            "disabled": false,
+            "host": "instance-1",
+            "forced_down": false,
+            "last_seen_up": "2017-02-01T06:13:07.000000",
+            "disabled_reason": null,
+            "id": 1
+        }
+    ]
+}
